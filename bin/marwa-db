@@ -1,0 +1,46 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Marwa\DB\CLI\ConsoleKernel;
+use Marwa\DB\Config\Config;
+use Marwa\DB\Connection\ConnectionManager;
+use Marwa\DB\Facades\DB as DBFacade;
+use Marwa\DB\Schema\Builder as SchemaBuilder;
+
+// 1) Load config (fall back to a minimal default)
+$configFile = __DIR__ . '/../config/database.php';
+$configArray = is_file($configFile)
+    ? require $configFile
+    : [
+        'default' => [
+            'driver'      => 'mysql',
+            'host'        => '127.0.0.1',
+            'port'        => 3306,
+            'database'    => 'marwaphp',
+            'username'    => 'root',
+            'password'    => '',
+            'charset'     => 'utf8mb4',
+            'retry'       => 3,
+            'retry_delay' => 300,
+            'debug'       => false,
+        ],
+    ];
+
+// 2) Bootstrap connection manager
+$config  = new Config($configArray);
+$manager = new ConnectionManager($config);
+
+// 3) (Optional) Wire facade & schema builder for convenience
+DBFacade::setManager($manager);
+SchemaBuilder::useConnectionManager($manager);
+
+// 4) Where migrations live
+$migrationsPath = __DIR__ . '/../database/migrations';
+
+// 5) Run the console kernel
+$kernel = new ConsoleKernel($manager, $migrationsPath);
+exit($kernel->run($argv));
