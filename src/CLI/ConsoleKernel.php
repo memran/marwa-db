@@ -10,6 +10,8 @@ use Marwa\DB\CLI\Commands\MigrateCommand;
 use Marwa\DB\CLI\Commands\MigrateRollbackCommand;
 use Marwa\DB\CLI\Commands\MigrateRefreshCommand;
 use Marwa\DB\CLI\Commands\MakeMigrationCommand;
+use Marwa\DB\CLI\Commands\MigrateStatusCommand;
+
 
 final class ConsoleKernel
 {
@@ -22,6 +24,9 @@ final class ConsoleKernel
         $app->add(new MigrateRollbackCommand($this->manager, $this->migrationsPath));
         $app->add(new MigrateRefreshCommand($this->manager, $this->migrationsPath));
         $app->add(new MakeMigrationCommand($this->migrationsPath));
+        $app->add(new MigrateStatusCommand($this->manager, $this->migrationsPath));
+
+
         return $app->run();
     }
 }

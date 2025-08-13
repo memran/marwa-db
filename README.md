@@ -1,461 +1,220 @@
-[![Build Status](https://travis-ci.org/memran/MarwaDB.svg?branch=master)](https://travis-ci.org/memran/MarwaDB)  [![Total Downloads](https://poser.pugx.org/memran/MarwaDB/downloads)](//packagist.org/packages/memran/MarwaDB) [![License](https://poser.pugx.org/memran/marwadb/license)](//packagist.org/packages/memran/marwadb) [![Dependents](https://poser.pugx.org/memran/marwadb/dependents)](//packagist.org/packages/memran/marwadb)
+# Marwa-DB
 
-<a href="https://phpstan.org/"><img src="https://img.shields.io/badge/PHPStan-enabled-brightgreen.svg?style=flat" alt="PHPStan Enabled"></a>
+**memran/marwa-db** is a PSR-compliant, framework-agnostic, Laravel-style database library built on top of PDO.  
+It includes a fluent query builder, Eloquent-style ORM, schema builder, migrations, and connection load balancing.
 
-# MarwaDB for MarwaPHP Framework
+---
 
-**MarwaDB** is php mysql library for **MarwaPHP** framework based on PDO. It is robust, faster and simple. It is query builder with PDO connection. No External Library has been used. It is raw and simple PHP Mysql Library by focusing speed, simplicity and scalability. Function names are same as **Laravel** Eloquent Builder.
+## 📌 Features
 
-Just install the package, add the config and it is ready to use!
+- **Multiple Connections** with load balancing & retry policies
+- **Fluent Query Builder** — chainable, secure, prepared statements
+- **Eloquent-style ORM**:
+  - Auto timestamps (`created_at`, `updated_at`)
+  - Soft deletes
+  - `fillable` / `guarded` attributes for mass assignment protection
+  - Relationships: `hasOne`, `hasMany`, `belongsTo`, `belongsToMany`
+  - Eager loading (`with()`, `load()`)
+- **Schema Builder**:
+  - Create/drop tables
+  - Foreign keys
+  - Indexes (`primary`, `unique`, `index`)
+  - Column modifiers (`nullable`, `default`, `after`)
+- **Migrations CLI**:
+  - `make:migration`
+  - `migrate`, `migrate:rollback`, `migrate:refresh`
+- **Seeder Support** with Faker
+- **Debug Panel** — view executed queries & timings
+- **PSR-3 Logging** integration
 
-## Requirements
+---
 
-- PHP >= 7.2.0
-- PDO Extension
+## 📦 Installation
 
-## Features
+```bash
+composer require memran/marwa-db
+```
 
-- Easy to create flexible queries
-- Supports any database compatible with PDO
-- Simple to build complex queries with little code
-- Blazing Fast
+---
 
-## Installation
+## ⚙ Configuration
 
-This package is installable and PSR-4 autoloadable via [Composer](https://packagist.org/packages/memran/marwadb) as
-
-    composer require memran/marwadb:dev-master
-
-## Usage
-
-Create a new DB class, and pass the configruation array to MarwaDB:
+`config/database.php`
 
 ```php
-require_once('../vendor/autoload.php');
-use MarwaDB\DB;
-$config = [
-    'default'=>
-        [
-           'driver' => "mysql",
-           'host' => "localhost",
-           'port' => 3306,
-           'database' => "test",
-           'username' => "root",
-           'password' => "1234",
-           'charset' => "utf8mb4",
-        ],
-    'write'=>
-        [
-           'driver' => "mysql",
-           'host' => "localhost",
-           'port' => 3306,
-           'database' => "test",
-           'username' => "root",
-           'password' => "1234",
-           'charset' => "utf8mb4",
-        ],
-    'read'=>
-        [
-           'driver' => "mysql",
-           'host' => "localhost",
-           'port' => 3306,
-           'database' => "test",
-           'username' => "root",
-           'password' => "1234",
-           'charset' => "utf8mb4",
-        ]
+<?php
+return [
+    'default' => [
+        'driver'      => 'mysql',
+        'host'        => '127.0.0.1',
+        'port'        => 3306,
+        'database'    => 'app',
+        'username'    => 'root',
+        'password'    => '',
+        'charset'     => 'utf8mb4',
+        'retry'       => 3,
+        'retry_delay' => 300,
+        'debug'       => true,
+    ],
 ];
-$db = new DB($config);
 ```
 
-### DB Raw Query
+---
 
-```php
-    $result = $db->raw('SELECT * FROM system WHERE id = ?',[1]);
-    dump($result)
+## 🚀 CLI Usage
+
+```bash
+php bin/marwa-db list
 ```
 
-Alternatively , you can use following function also:
+**Create migration:**
 
-```php
-    $result = $db->rawQuery('SELECT * FROM system WHERE id = ?',[1]);
-    dump($result)
+```bash
+php bin/marwa-db make:migration create_users_table
 ```
 
-### Get Total Result
+**Run migrations:**
 
-```php
-    dump("Total Rows Returned >>> ".$db->rows());
+```bash
+php bin/marwa-db migrate
 ```
 
-### PDO Server Status
+**Rollback:**
 
-```php
-    $db->status();
+```bash
+php bin/marwa-db migrate:rollback
 ```
 
-### Connection name Specified Query
+---
+
+## 🛠 Query Builder Examples
 
 ```php
-    $result=$db->connection('sqlSrv')->rawQuery('SELECT  *  FROM users WHERE id = ?',  [1]);
-    dump($result);
-```
+use Marwa\DB\Facades\DB;
 
-### Change Result Fetch Mode
-
-```php
-    $result=$db->connection('sqlSrv')->setFetchMode('array')->rawQuery('SELECT  *  FROM users WHERE id = ?',  [1]);
-    dump($result);
-```
-
-### Transaction
-
-```php
-    $db->transaction(function($db){
-       $db->rawQuery('DELETE  FROM users WHERE id = ?',  [4]);
-       dump($db->rows());
-    });
-```
-
-### Simple Select Query without Placeholder
-
-```php
-    $result =  $db->select('SELECT  *  FROM users');
-    dump($result);
-```
-
-### With Placeholder
-
-```php
-    $result=$db->select('SELECT  *  FROM users WHERE id = ?',  [1]);
-    dump($result);
-```
-
-### PDO Bind Param
-
-```php
-    $result =  $db->raw("SELECT  *  FROM users WHERE id = :id",  ['id'  =>  '1']);
-    dump($result);
-```
-
-### Get Connection Driver
-
-```php
-    dump($db->getDriver());
-```
-
-### Retrieving All Rows From A Table
-
-```php
-$db->table('users')->get();
-```
-
-### Retrieving A Single Row / Column From A Table
-
-```php
-$db->table('users')->where('name', 'Marwa')->first()->get();
-```
-
-### Retrieving A List Of Column Values
-
-```php
-$db->table('roles')->select(['title', 'name'])->get();
-```
-
-### Aggregates Function
-
-```php
-$users = $db->table('users')->count()->get();
-$price = $db->table('orders')->max('price')->get();
-$price = $db->table('orders')->avg('price')->get();
-$price = $db->table('orders')->min('price')->get();
-```
-
-## Selects
-
-#### Specifying A Select Clause
-
-```php
-$users = $db->table('users')->select(['name', 'email as user_email'])->get();
-```
-
-the _distinct_ method allows you to retrieve distinct results:
-
-```php
-$users = $db->table('users')->distinct()->get();
-```
-
-You may add column:
-
-```php
-$result =$db->table('users')->addSelect('age')->get();
-```
-
-## Joins
-
-#### Inner Join Clause
-
-```php
-$users = $db->table('users')
-            ->join('contacts', 'users.id', '=', 'contacts.user_id')
-            ->join('orders', 'users.id', '=', 'orders.user_id')
-            ->select('users.*', 'contacts.phone', 'orders.price')
-            ->get();
-```
-
-#### Left Join / Right Join Clause
-
-```php
-$users = $db->table('users')
-            ->leftJoin('posts', 'users.id', '=', 'posts.user_id')
-            ->get();
-
-$users = $db->table('users')
-            ->rightJoin('posts', 'users.id', '=', 'posts.user_id')
-            ->get();
-```
-
-## Unions
-
-```php
-$first = $db->table('users')
-            ->whereNull('first_name');
-
-$users = $db->table('users')
-            ->whereNull('last_name')
-            ->union($first)
-            ->get();
-```
-
-## Where Clauses
-
-#### Simple Where Clauses
-
-```php
-$users = $db->table('users')->where('votes', '=', 100)->get();
-```
-
-You may use a variety of other operators when writing a `where` clause:
-
-```php
-$users = $db->table('users')
-                ->where('votes', '>=', 100)
-                ->get();
-
-$users = $db->table('users')
-                ->where('votes', '<>', 100)
-                ->get();
-
-$users = $db->table('users')
-                ->where('name', 'like', 'T%')
-                ->get();
-```
-
-#### Or Statements
-
-```php
-$users = $db->table('users')
-                    ->where('votes', '>', 100)
-                    ->orWhere('name', 'John')
-                    ->get();
-```
-
-#### Additional Where Clauses
-
-**whereBetween / orWhereBetween**
-
-```php
-$users = $db->table('users')
-           ->whereBetween('votes', [1, 100])
-           ->get();
-```
-
-**whereNotBetween / orWhereNotBetween**
-
-```php
-$users = $db->table('users')
-                    ->whereNotBetween('votes', [1, 100])
-                    ->get();
-```
-
-**whereIn / whereNotIn / orWhereIn / orWhereNotIn**
-
-```php
-$users = $db->table('users')
-                    ->whereIn('id', [1, 2, 3])
-                    ->get();
+$users = DB::table('users')
+    ->where('status', 'active')
+    ->orderBy('created_at', 'desc')
+    ->limit(5)
+    ->get();
 ```
 
 ```php
-$users = $db->table('users')
-                    ->whereNotIn('id', [1, 2, 3])
-                    ->get();
-```
-
-**whereNull / whereNotNull / orWhereNull / orWhereNotNull**
-
-```php
-$users = $db->table('users')
-                    ->whereNull('updated_at')
-                    ->get();
-```
-
-```php
-$users = $db->table('users')
-                    ->whereNotNull('updated_at')
-                    ->get();
-```
-
-**whereDate / whereMonth / whereDay / whereYear / whereTime**
-
-```php
-$users = $db->table('users')
-                ->whereDate('created_at', '2016-12-31')
-                ->get();
-```
-
-```php
-$users = $db->table('users')
-                ->whereMonth('created_at', '12')
-                ->get();
-```
-
-```php
-$users = $db->table('users')
-                ->whereDay('created_at', '31')
-                ->get();
-```
-
-```php
-$users = $db->table('users')
-                ->whereYear('created_at', '2016')
-                ->get();
-```
-
-```php
-$users = $db->table('users')
-                ->whereTime('created_at', '=', '11:20:45')
-                ->get();
-```
-
-### Where Exists Clauses
-
-```php
-$users = $db->table('users')
-           ->whereExists(function ($query) {
-               $query->select([1])
-                     ->from('users')
-                     ->where('id', '=','1');
-           })
-           ->get();
-```
-
-#### orderBy
-
-```php
-$users = $db->table('users')
-                ->orderBy('name', 'desc')
-                ->get();
-```
-
-#### latest / oldest
-
-```php
-$user = $db->table('users')
-                ->latest()
-                ->first()
-                ->get();
-```
-
-#### inRandomOrder
-
-```php
-$randomUser = $db->table('users')
-                ->inRandomOrder()
-                ->first()
-                ->get();
-```
-
-#### groupBy / having
-
-```php
-$users = $db->table('users')
-                ->groupBy('account_id')
-                ->having('account_id', '>', 100)
-                ->get();
-```
-
-#### skip / take
-
-```php
-$users = $db->table('users')->skip(10)->take(5)->get();
-```
-
-## Inserts
-
-```php
-$db->table('users')->insert(
-    ['email' => 'test@test.com', 'active' => 0]
-);
-```
-
-Insert multiple records:
-
-```php
-$db->table('users')->insert([
-    ['email' => 'test@test.com', 'active' => 0],
-    ['email' => 'test1@test.com', 'active' => 1]
+DB::table('users')->insert([
+    'name' => 'Jane Doe',
+    'email' => 'jane@example.com',
 ]);
 ```
 
-## Updates
+---
+
+## 🏷 ORM Examples
 
 ```php
-$result= $db->table('users')
-              ->where('id', 1)
-              ->update(['active' => 1]);
+use App\Models\User;
+
+// Create record
+$user = User::create([
+    'name' => 'John Doe',
+    'email' => 'john@example.com'
+]);
+
+// Find & update
+$user = User::find(1);
+$user->email = 'new@example.com';
+$user->save();
+
+// Soft delete
+$user->delete();
 ```
 
-#### Update Or Insert
+---
+
+## 🔗 Relationships
 
 ```php
-$db->table('users')
-    ->updateOrInsert(
-        ['email' => 'test@test.com', 'name' => 'Marwa'], //data for update
-        ['active' => '1] // data for insert
-    );
+class User extends Model {
+    public function posts() {
+        return $this->hasMany(Post::class);
+    }
+}
+
+class Post extends Model {
+    public function author() {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+}
 ```
 
-## Deletes
+---
+
+## 🏗 Schema Builder
 
 ```php
-$db->table('users')->delete();
+use Marwa\DB\Schema\Schema;
 
-$db->table('users')->where('active', '=', 0)->delete();
+Schema::create('users', function($table) {
+    $table->increments('id');
+    $table->string('name')->nullable();
+    $table->string('email')->unique();
+    $table->timestamps();
+});
 ```
 
-## Debugging
+---
+
+## 📋 Function Reference
+
+### Query Builder
+
+- `table($name)` — Selects table
+- `select(...$columns)` — Selects specific columns
+- `where($column, $operator, $value)` — Adds WHERE clause
+- `orWhere(...)` — Adds OR WHERE clause
+- `orderBy($column, $direction)` — Sort results
+- `groupBy($column)` — Group results
+- `limit($n)` — Limit rows
+- `get()` — Fetch results
+- `first()` — Fetch first row
+- `insert($data)` — Insert new record(s)
+- `update($data)` — Update record(s)
+- `delete()` — Delete record(s)
+
+### ORM
+
+- `find($id)` — Find by primary key
+- `all()` — Get all rows
+- `create($attributes)` — Insert & return model
+- `save()` — Save changes
+- `delete()` — Delete (with soft delete if enabled)
+- `with($relations)` — Eager load relations
+
+### Schema Builder
+
+- `create($table, $callback)` — Create new table
+- `drop($table)` — Drop table
+- Column types: `string`, `integer`, `text`, `boolean`, `timestamp`, etc.
+- Modifiers: `nullable()`, `default($value)`, `after($column)`
+
+---
+
+## 🐞 Debugging
+
+Enable query debug in config:
 
 ```php
-//It will debug and die
-$db->table('users')->where('active', '=', 1)->dd();
-//it will only debug
-$db->table('users')->where('active', '=', 1)->dump();
+'debug' => true
 ```
 
-## Enable Sql Logging
+View queries:
+
 ```php
-$db->enableQueryLog();
-$db->table('users')->where('active', '=', 1)->get();
-dump($db->getQueryLog());
+use Marwa\DB\Support\DebugPanel;
+DebugPanel::render();
 ```
-## Print Sql Query
-```php
-dump($db->table('users')->where('active', '=', 1)->toSql());
-```
-## Contribution
-Please see [CONTRIBUTING](https://github.com/memran/MarwaDB/blob/master/CONTRIBUTING.MD) for details.
 
-## License
-The MIT License (MIT). Please see  [License File](https://github.com/memran/MarwaDB/blob/master/LICENSE.MD) for more information.
+---
 
+## 📜 License
+
+MIT — See LICENSE for details.
