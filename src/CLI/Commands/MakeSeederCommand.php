@@ -2,23 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Marwa\DB\Console\Commands;
+namespace Marwa\DB\CLI\Commands;
 
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:seeder',
+    description: 'Create a new database seeder class',
+    help: 'This command performs a specific task. Use it carefully.'
+)]
 final class MakeSeederCommand extends Command
 {
-    protected static $defaultName = 'make:seeder';
 
     public function __construct(
-        private string $seedPath = null,                  // e.g. project_root()/database/seeders
+        private string $seedPath = '',                  // e.g. project_root()/database/seeders
         private string $seedNamespace = 'Database\\Seeders'
     ) {
         parent::__construct();
-        $this->seedPath ??= getcwd() . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'seeders';
+        $this->seedPath = $seedPath ?: getcwd() . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'seeders';
     }
 
     protected function configure(): void
