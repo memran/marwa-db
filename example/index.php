@@ -7,10 +7,12 @@ require  ROOT_PATH . '/vendor/autoload.php';
 
 use Marwa\DB\Bootstrap;
 use Marwa\DB\Facades\DB;
+use Marwa\DB\Support\DebugPanel;
 
 $db = require ROOT_PATH . '/config/database.php';
 $manager = Bootstrap::init($db, null, true); // enable debug panel in web context
-
+$panel = new DebugPanel();
+$manager->setDebugPanel($panel);
 
 DB::setManager($manager);
 $rows = DB::table('users')
@@ -20,3 +22,6 @@ $rows = DB::table('users')
     ->get();  // arrays/objects depending on fetch mode
 
 var_dump($rows);
+if ($db['default']['debug']) {
+    echo $panel->render();
+}
