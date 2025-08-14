@@ -28,6 +28,7 @@ final class MigrateCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         SchemaBuilder::useConnectionManager($this->manager);
+
         $repo = new MigrationRepository($this->manager->getPdo(), $this->migrationsPath);
         $count = $repo->migrate();
         $output->writeln("<info>Migrations run: {$count}</info>");

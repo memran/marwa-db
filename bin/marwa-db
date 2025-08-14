@@ -9,7 +9,7 @@ use Marwa\DB\CLI\ConsoleKernel;
 use Marwa\DB\Config\Config;
 use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\Facades\DB as DBFacade;
-use Marwa\DB\Schema\Builder as SchemaBuilder;
+use Marwa\DB\Schema\Schema;
 
 // 1) Load config (fall back to a minimal default)
 $configFile = __DIR__ . '/../config/database.php';
@@ -33,10 +33,10 @@ $configArray = is_file($configFile)
 // 2) Bootstrap connection manager
 $config  = new Config($configArray);
 $manager = new ConnectionManager($config);
-
+$manager->setAsGlobal();
 // 3) (Optional) Wire facade & schema builder for convenience
 DBFacade::setManager($manager);
-SchemaBuilder::useConnectionManager($manager);
+Schema::init($manager);
 
 // 4) Where migrations live
 $migrationsPath = __DIR__ . '/../database/migrations';

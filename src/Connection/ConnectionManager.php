@@ -77,6 +77,11 @@ final class ConnectionManager implements ConnectionInterface
         return $this->getPdo($name);
     }
 
+    public function setAsGlobal()
+    {
+        $cm = $this;
+        global $cm;
+    }
     private function connectWithRetry(string $name): \PDO
     {
         $cfg = $this->config->get($name);
