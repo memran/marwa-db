@@ -79,8 +79,7 @@ final class ConnectionManager implements ConnectionInterface
 
     public function setAsGlobal()
     {
-        $cm = $this;
-        global $cm;
+        $GLOBALS['cm'] = $this;
     }
     private function connectWithRetry(string $name): \PDO
     {

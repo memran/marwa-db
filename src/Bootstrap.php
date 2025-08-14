@@ -9,6 +9,7 @@ use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\Support\DebugPanel;
 use Psr\Log\LoggerInterface;
 
+
 final class Bootstrap
 {
     public static function init(array $dbConfig, ?LoggerInterface $logger = null, bool $enableDebugPanel = false): ConnectionManager
@@ -19,6 +20,7 @@ final class Bootstrap
         if ($enableDebugPanel) {
             $manager->setDebugPanel(new DebugPanel());
         }
+        $manager->setAsGlobal();
         return $manager;
     }
 }

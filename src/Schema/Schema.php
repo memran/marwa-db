@@ -15,7 +15,7 @@ class Schema
     public static function init(?ConnectionManager $cm = null, ?string $connectionName = null): void
     {
         if (is_null($cm)) {
-            global $cm;
+            $cm = $GLOBALS['cm'];
         }
 
         static::$factory = new Builder($cm);

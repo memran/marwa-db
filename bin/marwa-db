@@ -5,10 +5,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use Marwa\DB\Bootstrap;
 use Marwa\DB\CLI\ConsoleKernel;
-use Marwa\DB\Config\Config;
-use Marwa\DB\Connection\ConnectionManager;
-use Marwa\DB\Facades\DB as DBFacade;
+use Marwa\DB\Facades\DB;
 use Marwa\DB\Schema\Schema;
 
 // 1) Load config (fall back to a minimal default)
@@ -30,12 +29,12 @@ $configArray = is_file($configFile)
         ],
     ];
 
+
 // 2) Bootstrap connection manager
-$config  = new Config($configArray);
-$manager = new ConnectionManager($config);
-$manager->setAsGlobal();
+$manager = Bootstrap::init($configArray);
+
 // 3) (Optional) Wire facade & schema builder for convenience
-DBFacade::setManager($manager);
+DB::setManager($manager);
 Schema::init($manager);
 
 // 4) Where migrations live
