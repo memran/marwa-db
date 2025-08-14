@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Marwa\DB\ORM;
 
+use Exception;
 use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\Support\Helpers;
 use Marwa\DB\ORM\Traits\Timestamps;
@@ -17,7 +18,7 @@ abstract class Model
     use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships;
 
     /** Table + key */
-    protected static string $table;
+    protected static ?string $table = null; // if null, it will be inferred
     protected static string $primaryKey = 'id';
 
     /** Behaviors */
@@ -43,6 +44,28 @@ abstract class Model
         $this->original   = $attributes;
         $this->exists     = $exists;
     }
+
+    /**
+     * Get the fully-resolved table name for this model.
+     * If not set, infer from the class name and cache it in static::$table.
+     */
+    public static function table(): string
+    {
+        if (static::$table !== null && static::$table !== '') {
+            return static::$table;
+        }
+        static::$table = static::inferTableName();
+        return static::$table;
+    }
+
+    /**
+     * Explicitly set the model table name (overrides inference).
+     */
+    public static function setTable(string $table): void
+    {
+        static::$table = $table;
+    }
+
 
     /** Wire a ConnectionManager for all models */
     public static function setConnectionManager(ConnectionManager $cm, string $connection = 'default'): void
@@ -74,7 +97,8 @@ abstract class Model
         if (!static::$cm) {
             throw new \RuntimeException('ConnectionManager not set. Call Model::setConnectionManager().');
         }
-        return (new \Marwa\DB\Query\Builder(static::$cm, static::$connection))->table(static::$table);
+
+        return (new \Marwa\DB\Query\Builder(static::$cm, static::$connection))->table(static::table());
     }
 
     /** Apply default soft‑delete filter to a low‑level builder (if available) */
@@ -183,6 +207,42 @@ abstract class Model
         $this->original = $this->attributes;
         $this->exists = true;
         return true;
+    }
+
+    /**
+     * Get the primary key column name for the model.
+     *
+     * @return string
+     */
+    public function getPrimaryKey(): string
+    {
+        // If model has explicitly set $primaryKey
+        if (property_exists($this, 'primaryKey') && !empty($this->primaryKey)) {
+            return $this->primaryKey;
+        }
+
+        // Default fallback
+        return 'id';
+    }
+    /**
+     * Destroy one or multiple records by primary key.
+     *
+     * @param int|array<int> $ids Single ID or array of IDs
+     * @return int Number of deleted (or soft deleted) records
+     */
+    public static function destroy(int|array $ids): int
+    {
+        $instance = new static();
+        $pk       = $instance->getPrimaryKey();
+        $qb       = $instance->baseQuery()->whereIn($pk, $ids);
+
+        // Soft delete enabled → update deleted_at timestamp
+        if (static::$softDeletes) {
+            return $qb->update(['deleted_at' => date('Y-m-d H:i:s')]);
+        }
+
+        // Hard delete
+        return $qb->delete();
     }
 
     /** Soft delete (if enabled) otherwise hard delete */
@@ -338,5 +398,71 @@ abstract class Model
     {
         $data = is_array($row) ? $row : (array)$row;
         return new static($data, true);
+    }
+    /**
+     * Infer table from short class name: `App\Models\UserProfile` -> `user_profiles`
+     * Rules:
+     *  - CamelCase → snake_case
+     *  - Naive pluralization: words ending in (s,x,z,ch,sh) -> +es; word ending in 'y' after a consonant -> 'ies'; default -> +s
+     *  - Optional small irregulars map (you can extend it)
+     */
+    protected static function inferTableName(): string
+    {
+        $base = static::classBaseName();        // e.g., "UserProfile"
+        $snake = static::toSnakeCase($base);    // "user_profile"
+        return static::pluralize($snake);       // "user_profiles"
+    }
+
+    /** "App\Models\UserProfile" -> "UserProfile" */
+    protected static function classBaseName(): string
+    {
+        $fqcn = static::class;
+        $pos = strrpos($fqcn, '\\');
+        return $pos === false ? $fqcn : substr($fqcn, $pos + 1);
+    }
+
+    /** "UserProfile" -> "user_profile" */
+    protected static function toSnakeCase(string $name): string
+    {
+        $snake = preg_replace('/(?<!^)[A-Z]/', '_$0', $name);
+        return strtolower($snake ?? $name);
+    }
+
+    /** Very small, dependency‑free pluralizer for table names */
+    protected static function pluralize(string $word): string
+    {
+        // Irregulars (extend as needed)
+        static $irregular = [
+            'person' => 'people',
+            'man'    => 'men',
+            'woman'  => 'women',
+            'child'  => 'children',
+            'tooth'  => 'teeth',
+            'foot'   => 'feet',
+            'mouse'  => 'mice',
+            'goose'  => 'geese',
+        ];
+
+        if (isset($irregular[$word])) {
+            return $irregular[$word];
+        }
+
+        // if already “looks plural”, keep as-is (basic heuristic)
+        if (preg_match('/s$/', $word)) {
+            return $word;
+        }
+
+        // y -> ies (only if preceded by a consonant)
+        if (preg_match('/[^aeiou]y$/i', $word)) {
+            return preg_replace('/y$/i', 'ies', $word);
+        }
+
+        // es endings
+        if (preg_match('/(s|x|z|ch|sh)$/i', $word)) {
+            return $word . 'es';
+        }
+
+        // default: +s
+        return $word . 's';
     }
 }

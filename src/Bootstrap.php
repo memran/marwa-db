@@ -19,7 +19,6 @@ final class Bootstrap
         if ($enableDebugPanel) {
             $manager->setDebugPanel(new DebugPanel());
         }
-
         return $manager;
     }
 }

@@ -7,6 +7,8 @@ namespace Marwa\DB\Connection;
 use Marwa\DB\Config\Config;
 use Marwa\DB\Support\DebugPanel;
 use Psr\Log\LoggerInterface;
+use Closure;
+use Throwable;
 
 final class ConnectionManager implements ConnectionInterface
 {
@@ -32,6 +34,36 @@ final class ConnectionManager implements ConnectionInterface
     {
         return $this->debugPanel;
     }
+
+    /**
+     * Run a set of queries inside a database transaction.
+     *
+     * @template T
+     * @param Closure $callback The callback to run in the transaction. The PDO instance will be passed as the first argument.
+     * @param string|null $connectionName Optional connection name, defaults to the default connection.
+     * @return mixed The return value of the callback.
+     * @throws Throwable If an exception occurs, the transaction will be rolled back and rethrown.
+     */
+    public function transaction(Closure $callback, ?string $connectionName = null)
+    {
+        $connection = $this->getPdo($connectionName);
+
+        try {
+            $connection->beginTransaction();
+
+            // Execute callback with PDO instance
+            $result = $callback($connection);
+
+            $connection->commit();
+            return $result;
+        } catch (Throwable $e) {
+            if ($connection->inTransaction()) {
+                $connection->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     public function getPdo(string $name = 'default'): \PDO
     {
         if (!isset($this->pool[$name])) {

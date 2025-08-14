@@ -11,16 +11,16 @@ use Marwa\DB\CLI\Commands\MigrateRollbackCommand;
 use Marwa\DB\CLI\Commands\MigrateRefreshCommand;
 use Marwa\DB\CLI\Commands\MakeMigrationCommand;
 use Marwa\DB\CLI\Commands\MigrateStatusCommand;
-use Marwa\DB\CLI\Commands\DbSeedCommand;
 
-use Marwa\DB\Console\Commands\MakeSeederCommand;
-use Marwa\DB\Console\Commands\DbSeedAutoCommand;
+use Marwa\DB\CLI\Commands\MakeSeederCommand;
 use Marwa\DB\Seeder\SeedRunner;
+use Marwa\DB\CLI\Commands\DbSeedAutoCommand;
 
 final class ConsoleKernel
 {
     protected $logger;
     public function __construct(private ConnectionManager $manager, private string $migrationsPath) {}
+
 
     public function run(array $argv): int
     {
@@ -31,30 +31,17 @@ final class ConsoleKernel
         $app->add(new MigrateRefreshCommand($this->manager, $this->migrationsPath));
         $app->add(new MakeMigrationCommand($this->migrationsPath));
         $app->add(new MigrateStatusCommand($this->manager, $this->migrationsPath));
-        // $app->add(new DbSeedCommand(
-        //     new \Marwa\DB\Seeder\SeedRunner($this->manager, $logger)
-        // ));
 
-        // $app->add(new MakeSeederCommand(
-        //     seedPath: getcwd() . '/database/seeders',
-        //     seedNamespace: 'Database\\Seeders'
-        // ));
+        // $manager from your bootstrap (ConnectionManager)
+        // $psrLogger optional
 
-        // $app->add(new DbSeedAutoCommand(
-        //     runner: new SeedRunner($this->manager, $psrLogger),
-        //     seedPath: getcwd() . '/database/seeders',
-        //     seedNamespace: 'Database\\Seeders',
-        //     exclude: ['DatabaseSeeder'] // can set [] to include it too
-        // ));
+        $seedRunner = new SeedRunner(
+            cm: $this->manager,
+            logger: $psrLogger ?? null,
+        );
+        $app->add(new DbSeedAutoCommand($seedRunner));
+
 
         return $app->run();
     }
-
-    protected function getLogger()
-    {
-        // Get the logger (manual logging)
-        return $this->logger;
-    }
-
-    protected function enableErrorHandler() {}
 }

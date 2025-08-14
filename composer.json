@@ -18,7 +18,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Marwa\\DB\\": "src/"
+      "Marwa\\DB\\": "src/",
+      "App\\": "app/"
     },
     "files": [
       "src/Support/Helpers.php"

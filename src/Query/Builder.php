@@ -4,312 +4,541 @@ declare(strict_types=1);
 
 namespace Marwa\DB\Query;
 
+use PDO;
 use Marwa\DB\Connection\ConnectionManager;
-use Marwa\DB\Exceptions\QueryException;
-use Marwa\DB\Logger\QueryLogger;
 use Marwa\DB\Support\Collection;
-use Marwa\DB\Query\Expression;
-use Marwa\DB\Query\Grammar;
-use Marwa\DB\Support\DebugPanel;
 
-final class Builder
+class Builder
 {
-    private string $table = '';
-    private array $selects = ['*'];
-    private array $wheres = [];
-    private array $bindings = [];
-    private array $orders = [];
-    private ?int $limit = null;
-    private ?int $offset = null;
-
     public function __construct(
-        private ConnectionManager $manager,
-        private string $connection = 'default',
-        private Grammar $grammar = new Grammar(),
-        private ?QueryLogger $logger = null
+        protected ConnectionManager $cm,
+        protected string $connection = 'default',
     ) {}
 
-    private function getDebugPanel(): ?DebugPanel
-    {
-        return $this->cm->getDebugPanel();
-    }
+    /* ---------------------------
+     * Internal State
+     * ------------------------- */
+    protected ?string $from = null;
 
+    /** @var array<int, string|Expression> */
+    protected array $columns = ['*'];
+
+    /** @var array<int, array> */
+    protected array $wheres = [];
+
+    /** @var array<int, array{column:string, direction:string}> */
+    protected array $orders = [];
+
+    protected ?int $limit = null;
+    protected ?int $offset = null;
+
+    /** Structured binding buckets to control order */
+    protected array $bindings = [
+        'select' => [],
+        'from'   => [],
+        'join'   => [],
+        'where'  => [],
+        'having' => [],
+        'order'  => [],
+        'union'  => [],
+    ];
+
+    /* ---------------------------
+     * Table / Select
+     * ------------------------- */
     public function table(string $table): self
     {
-        $this->table = $table;
-        return $this;
-    }
-    /**
-     * @param string|Expression $column
-     */
-    private function addSelect(string|Expression $column): void
-    {
-        // Initialize selects if it’s still the default ['*']
-        if ($this->selects === ['*']) {
-            $this->selects = [];
-        }
-        $this->selects[] = $column;
+        return $this->from($table);
     }
 
-    public function select(string ...$cols): self
+    public function from(string $table): self
     {
-        if (!empty($cols)) {
-            foreach ($cols as $c) {
-                $this->addSelect($c);
-            }
+        $this->from = $table;
+        return $this;
+    }
+
+    public function select(string ...$columns): self
+    {
+        if (!empty($columns)) {
+            $this->columns = $columns;
         }
         return $this;
     }
 
-    /**
-     * Add a "where in" clause.
-     */
-    public function whereIn(string $column, array $values, bool $not = false): self
-    {
-        $operator = $not ? 'NOT IN' : 'IN';
-        $placeholders = implode(', ', array_fill(0, count($values), '?'));
-        $this->wheres[] = [$column . " {$operator} ({$placeholders})", $values];
-        return $this;
-    }
-
-    /**
-     * Add a "where not in" clause.
-     */
-    public function whereNotIn(string $column, array $values): self
-    {
-        return $this->whereIn($column, $values, true);
-    }
-
-
-    /**
-     * Add a raw select expression to the query.
-     *
-     * Example: ->selectRaw('MAX(batch) as aggregate')
-     */
     public function selectRaw(string $expression, array $bindings = []): self
     {
-        $this->addSelect(new Expression($expression));
-
-        // Merge optional bindings (kept in the same order they are added)
-        if ($bindings) {
-            foreach ($bindings as $b) {
-                $this->bindings[] = $b;
-            }
+        // allow mixing raw expressions with normal columns
+        if ($this->columns === ['*']) {
+            $this->columns = [];
         }
+        $this->columns[] = new Expression($expression);
+        $this->addBinding($bindings, 'select');
         return $this;
     }
 
-    public function where(string $col, string $op, mixed $val): self
+    /* ---------------------------
+     * Where Clauses
+     * ------------------------- */
+
+    public function where(string $column, string $operator, mixed $value, string $boolean = 'and'): self
     {
-        $this->wheres[] = [$col, $op];
-        $this->bindings[] = $val;
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $this->wheres[] = [
+            'type'    => 'Basic',
+            'column'  => $column,
+            'operator' => $operator,
+            'value'   => $value,
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($value, 'where');
         return $this;
     }
 
-    public function orderBy(string $col, string $dir = 'asc'): self
+    public function orWhere(string $column, string $operator, mixed $value): self
     {
-        $this->orders[] = [$col, strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC'];
+        return $this->where($column, $operator, $value, 'or');
+    }
+
+    public function whereIn(string $column, array $values, bool $not = false, string $boolean = 'and'): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+
+        if (count($values) === 0) {
+            // Avoid invalid SQL: IN ()
+            $this->wheres[] = [
+                'type'    => 'Raw',
+                'sql'     => $not ? '(1 = 1)' : '(1 = 0)', // always true/false
+                'boolean' => $boolean,
+            ];
+            return $this;
+        }
+
+        $this->wheres[] = [
+            'type'    => 'In',
+            'column'  => $column,
+            'values'  => array_values($values),
+            'not'     => $not,
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($values, 'where');
+        return $this;
+    }
+
+    public function whereNotIn(string $column, array $values, string $boolean = 'and'): self
+    {
+        return $this->whereIn($column, $values, true, $boolean);
+    }
+
+    public function whereNull(string $column, string $boolean = 'and'): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $this->wheres[] = [
+            'type'    => 'Null',
+            'column'  => $column,
+            'not'     => false,
+            'boolean' => $boolean,
+        ];
+        return $this;
+    }
+
+    public function whereNotNull(string $column, string $boolean = 'and'): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $this->wheres[] = [
+            'type'    => 'Null',
+            'column'  => $column,
+            'not'     => true,
+            'boolean' => $boolean,
+        ];
+        return $this;
+    }
+
+    /* ---------------------------
+     * Order / Limit / Offset
+     * ------------------------- */
+
+    public function orderBy(string $column, string $direction = 'asc'): self
+    {
+        $dir = strtolower($direction) === 'desc' ? 'desc' : 'asc';
+        $this->orders[] = ['column' => $column, 'direction' => $dir];
         return $this;
     }
 
     public function limit(int $n): self
     {
-        $this->limit = $n;
+        $this->limit = max(0, $n);
         return $this;
     }
+
     public function offset(int $n): self
     {
-        $this->offset = $n;
+        $this->offset = max(0, $n);
         return $this;
     }
 
-    public function get(): array
+    /* ---------------------------
+     * Fetch
+     * ------------------------- */
+
+    public function get(int $fetchMode = PDO::FETCH_ASSOC): array
     {
-        [$sql, $bind] = $this->compileSelect();
-        return $this->run($sql, $bind);
+        [$sql, $bindings] = $this->compileSelect();
+        $rows = $this->execute($sql, $bindings, $fetchMode);
+
+        return is_array($rows) ? $rows : [];
     }
 
-    public function first(): ?array
+    public function first(int $fetchMode = PDO::FETCH_ASSOC): array|object|null
     {
+        $prev = $this->limit;
         $this->limit(1);
-        $rows = $this->get();
+        $rows = $this->get($fetchMode);
+        $this->limit = $prev;
+
         return $rows[0] ?? null;
     }
 
-
-    public function insert(array $data): int
+    public function value(string $column): mixed
     {
-        $cols = array_keys($data);
-        $placeholders = $this->grammar->parameterize($data);
-        $colSql = implode(', ', array_map([$this->grammar, 'wrap'], $cols));
-        $sql = "INSERT INTO {$this->grammar->wrap($this->table)} ({$colSql}) VALUES ({$placeholders})";
-        $this->bindings = array_values($data);
-        $this->execute($sql, $this->bindings);
-        return (int)$this->manager->getPdo($this->connection)->lastInsertId();
-    }
-
-    public function update(array $data): int
-    {
-        $sets = [];
-        foreach ($data as $col => $_) {
-            $sets[] = $this->grammar->wrap($col) . ' = ?';
+        $row = $this->select($column)->first(PDO::FETCH_ASSOC);
+        if ($row === null) {
+            return null;
         }
-        $sql = "UPDATE {$this->grammar->wrap($this->table)} SET " . implode(', ', $sets) . $this->compileWhere();
-        $bind = array_values($data);
-        $bind = array_merge($bind, $this->bindings);
-        return $this->execute($sql, $bind);
+        return is_array($row) ? ($row[$column] ?? null) : ($row->$column ?? null);
     }
 
-    public function delete(): int
-    {
-        $sql = "DELETE FROM {$this->grammar->wrap($this->table)}" . $this->compileWhere();
-        return $this->execute($sql, $this->bindings);
-    }
-
-    private function compileSelect(): array
-    {
-        // If user never changed selects, keep '*'
-        $selectList = $this->selects ?: ['*'];
-
-        $select = implode(', ', array_map(function ($c) {
-            if ($c === '*') {
-                return '*';
-            }
-            // Raw expression passes through
-            if ($c instanceof Expression) {
-                return (string)$c;
-            }
-            // Normal identifier gets quoted
-            return $this->grammar->wrap($c);
-        }, $selectList));
-
-        $sql = "SELECT {$select} FROM {$this->grammar->wrap($this->table)}";
-        $sql .= $this->compileWhere();
-
-        if ($this->orders) {
-            $order = implode(', ', array_map(
-                fn($o) => $this->grammar->wrap($o[0]) . ' ' . $o[1],
-                $this->orders
-            ));
-            $sql .= " ORDER BY {$order}";
-        }
-        if ($this->limit !== null) {
-            $sql .= " LIMIT {$this->limit}";
-        }
-        if ($this->offset !== null) {
-            $sql .= " OFFSET {$this->offset}";
-        }
-
-        return [$sql, $this->bindings];
-    }
-    public function whereNull(string $column): self
-    {
-        $this->wheres[] = [new \Marwa\DB\Query\Expression($this->grammar->wrap($column) . ' IS NULL'), null];
-        return $this;
-    }
-    public function whereNotNull(string $column): self
-    {
-        $this->wheres[] = [new \Marwa\DB\Query\Expression($this->grammar->wrap($column) . ' IS NOT NULL'), null];
-        return $this;
-    }
-
-    private function compileWhere(): string
-    {
-        if (!$this->wheres) return '';
-        $parts = array_map(fn($w) => $this->grammar->wrap($w[0]) . " {$w[1]} ?", $this->wheres);
-        return ' WHERE ' . implode(' AND ', $parts);
-    }
-
-    /** @return array<int,array<string,mixed>> */
-    private function run(string $sql, array $bindings): array
-    {
-        $start = microtime(true);
-        $pdo = $this->manager->getPdo($this->connection);
-        try {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($bindings);
-            $rows = $stmt->fetchAll() ?: [];
-        } catch (\Throwable $e) {
-            throw new QueryException($e->getMessage(), (int)$e->getCode(), $e);
-        } finally {
-            $time = microtime(true) - $start;
-            if ($this->manager->isDebug($this->connection)) {
-                $this->logger?->record($this->connection, $sql, $bindings, $time);
-            }
-        }
-        return $rows;
-    }
-
-    private function execute(string $sql, array $bindings): int
-    {
-        $start = microtime(true);
-        $pdo = $this->manager->getPdo($this->connection);
-        try {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($bindings);
-            return $stmt->rowCount();
-        } catch (\Throwable $e) {
-            throw new QueryException($e->getMessage(), (int)$e->getCode(), $e);
-        } finally {
-            $time = microtime(true) - $start;
-            if ($this->manager->isDebug($this->connection)) {
-                $this->logger?->record($this->connection, $sql, $bindings, $time);
-            }
-        }
-    }
-    /**
-     * Extract a single column from the result set and return a Collection of scalars.
-     *
-     * Example:
-     *   $ids = DB::table('migrations')->pluck('migration')->toArray();
-     *
-     * @return Collection
-     */
     public function pluck(string $column): Collection
     {
-        // Only select the requested column to keep it efficient
-        $results = (clone $this)->select($column)->get();
+        $rows = $this->select($column)->get(PDO::FETCH_ASSOC);
+        $out = [];
+        foreach ($rows as $r) {
+            $out[] = is_array($r) ? ($r[$column] ?? null) : ($r->$column ?? null);
+        }
+        return new Collection($out);
+    }
 
-        $values = [];
-        foreach ($results as $row) {
-            if (is_array($row) && array_key_exists($column, $row)) {
-                $values[] = $row[$column];
-            } elseif (is_object($row) && isset($row->{$column})) {
-                $values[] = $row->{$column};
-            }
+    /* ---------------------------
+     * Mutations
+     * ------------------------- */
+
+    /** @return int affected rows */
+    public function insert(array $data): int
+    {
+        $this->ensureFrom();
+
+        // Single-row insert only (simple and portable)
+        $columns = array_keys($data);
+        $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+
+        $sql = sprintf(
+            'INSERT INTO %s (%s) VALUES (%s)',
+            $this->wrap($this->from),
+            implode(', ', array_map(fn($c) => $this->wrap($c), $columns)),
+            $placeholders
+        );
+
+        $bindings = array_values($data);
+
+        return (int) $this->executeAffecting($sql, $bindings);
+    }
+
+    /** @return int affected rows */
+    public function update(array $data): int
+    {
+        $this->ensureFrom();
+
+        [$whereSql, $whereBindings] = $this->compileWhere();
+
+        $sets = [];
+        $setBindings = [];
+        foreach ($data as $col => $val) {
+            $sets[] = $this->wrap($col) . ' = ?';
+            $setBindings[] = $val;
         }
 
-        return new Collection($values);
+        $sql = sprintf(
+            'UPDATE %s SET %s %s',
+            $this->wrap($this->from),
+            implode(', ', $sets),
+            $whereSql
+        );
+
+        $bindings = array_merge($setBindings, $whereBindings);
+
+        return (int) $this->executeAffecting($sql, $bindings);
+    }
+
+    /** @return int affected rows */
+    public function delete(): int
+    {
+        $this->ensureFrom();
+
+        [$whereSql, $whereBindings] = $this->compileWhere();
+
+        $sql = sprintf(
+            'DELETE FROM %s %s',
+            $this->wrap($this->from),
+            $whereSql
+        );
+
+        return (int) $this->executeAffecting($sql, $whereBindings);
+    }
+
+    /* ---------------------------
+     * Aggregates
+     * ------------------------- */
+
+    public function count(string $column = '*'): int
+    {
+        $this->columns = [new Expression('COUNT(' . ($column === '*' ? '*' : $this->wrap($column)) . ') AS aggregate')];
+        $row = $this->first(PDO::FETCH_ASSOC);
+        return (int) (is_array($row) ? ($row['aggregate'] ?? 0) : ($row->aggregate ?? 0));
     }
 
     public function max(string $column): mixed
     {
-        return $this->aggregate("MAX({$column})");
-    }
-    public function min(string $column): mixed
-    {
-        return $this->aggregate("MIN({$column})");
-    }
-    public function sum(string $column): int|float|null
-    {
-        return $this->aggregate("SUM({$column})");
-    }
-    public function avg(string $column): ?float
-    {
-        $v = $this->aggregate("AVG({$column})");
-        return $v !== null ? (float)$v : null;
-    }
-    public function count(string $column = '*'): int
-    {
-        $v = $this->aggregate("COUNT({$column})");
-        return $v !== null ? (int)$v : 0;
+        $this->columns = [new Expression('MAX(' . $this->wrap($column) . ') AS aggregate')];
+        $row = $this->first(PDO::FETCH_ASSOC);
+        return is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
     }
 
-    protected function aggregate(string $expression): mixed
+    public function min(string $column): mixed
     {
-        $result = (clone $this)->selectRaw("{$expression} as aggregate")->first();
-        if (is_object($result) && isset($result->aggregate)) return $result->aggregate;
-        if (is_array($result)  && isset($result['aggregate'])) return $result['aggregate'];
-        return null;
+        $this->columns = [new Expression('MIN(' . $this->wrap($column) . ') AS aggregate')];
+        $row = $this->first(PDO::FETCH_ASSOC);
+        return is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
+    }
+
+    public function sum(string $column): int|float|null
+    {
+        $this->columns = [new Expression('SUM(' . $this->wrap($column) . ') AS aggregate')];
+        $row = $this->first(PDO::FETCH_ASSOC);
+        $val = is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
+        return $val === null ? null : (is_numeric($val) ? +$val : null);
+    }
+
+    public function avg(string $column): ?float
+    {
+        $this->columns = [new Expression('AVG(' . $this->wrap($column) . ') AS aggregate')];
+        $row = $this->first(PDO::FETCH_ASSOC);
+        $val = is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
+        return $val === null ? null : (float)$val;
+    }
+
+    /* ---------------------------
+     * SQL Generation Helpers
+     * ------------------------- */
+
+    /** @return array{0:string,1:array} */
+    protected function compileSelect(): array
+    {
+        $this->ensureFrom();
+
+        $selects = $this->columnsToSql();
+
+        [$whereSql, $whereBindings] = $this->compileWhere();
+        $orderSql = $this->compileOrder();
+        $limitSql = $this->compileLimit();
+
+        $sql = sprintf(
+            'SELECT %s FROM %s %s %s %s',
+            $selects,
+            $this->wrap($this->from),
+            $whereSql,
+            $orderSql,
+            $limitSql
+        );
+
+        $bindings = array_merge(
+            $this->bindings['select'],
+            $whereBindings
+        );
+
+        return [trim(preg_replace('/\s+/', ' ', $sql) ?? $sql), $bindings];
+    }
+
+    /** @return array{0:string,1:array} */
+    protected function compileWhere(): array
+    {
+        if (empty($this->wheres)) {
+            return ['', []];
+        }
+        $parts = [];
+        foreach ($this->wheres as $i => $w) {
+            $bool = $i === 0 ? '' : ' ' . strtoupper($w['boolean']) . ' ';
+            switch ($w['type']) {
+                case 'Basic':
+                    $parts[] = $bool . sprintf('(%s %s ?)', $this->wrap($w['column']), $w['operator']);
+                    break;
+                case 'In':
+                    $count = count($w['values']);
+                    $ph = implode(', ', array_fill(0, $count, '?'));
+                    $not = $w['not'] ? ' NOT' : '';
+                    $parts[] = $bool . sprintf('(%s%s IN (%s))', $this->wrap($w['column']), $not, $ph);
+                    break;
+                case 'Null':
+                    $parts[] = $bool . sprintf('(%s IS %sNULL)', $this->wrap($w['column']), $w['not'] ? 'NOT ' : '');
+                    break;
+                case 'Raw':
+                    $parts[] = $bool . $w['sql'];
+                    break;
+            }
+        }
+        return ['WHERE ' . implode('', $parts), $this->bindings['where']];
+    }
+
+    protected function compileOrder(): string
+    {
+        if (empty($this->orders)) {
+            return '';
+        }
+        $chunks = array_map(
+            fn($o) => $this->wrap($o['column']) . ' ' . strtoupper($o['direction']),
+            $this->orders
+        );
+        return 'ORDER BY ' . implode(', ', $chunks);
+    }
+
+    protected function compileLimit(): string
+    {
+        $sql = '';
+        if ($this->limit !== null) {
+            $sql .= 'LIMIT ' . (int)$this->limit . ' ';
+        }
+        if ($this->offset !== null) {
+            $sql .= 'OFFSET ' . (int)$this->offset . ' ';
+        }
+        return trim($sql);
+    }
+
+    protected function columnsToSql(): string
+    {
+        if (empty($this->columns)) {
+            return '*';
+        }
+        $out = [];
+        foreach ($this->columns as $col) {
+            if ($col instanceof Expression) {
+                $out[] = (string)$col;
+            } else {
+                $out[] = $col === '*' ? '*' : $this->wrap($col);
+            }
+        }
+        return implode(', ', $out);
+    }
+
+    protected function ensureFrom(): void
+    {
+        if (!$this->from) {
+            throw new \RuntimeException('No table specified. Call table() or from() first.');
+        }
+    }
+
+    protected function wrap(string $identifier): string
+    {
+        // support table.column
+        $parts = explode('.', $identifier);
+        $parts = array_map(function ($p) {
+            return $p === '*' ? '*' : '`' . str_replace('`', '``', $p) . '`';
+        }, $parts);
+        return implode('.', $parts);
+    }
+
+    /* ---------------------------
+     * Bindings / SQL output
+     * ------------------------- */
+
+    protected function addBinding(array|string|int|float|null $value, string $type = 'where'): void
+    {
+        if (!isset($this->bindings[$type])) {
+            $this->bindings[$type] = [];
+        }
+        if ($value === null) {
+            $this->bindings[$type][] = null;
+            return;
+        }
+        if (is_array($value)) {
+            foreach ($value as $v) {
+                $this->bindings[$type][] = $v;
+            }
+            return;
+        }
+        $this->bindings[$type][] = $value;
+    }
+
+    /** Return a merged binding list in execution order for the current SQL. */
+    public function getBindings(): array
+    {
+        // For SELECTs we merge select + where; for updates/inserts we pass explicit bindings in execute
+        return array_merge(
+            $this->bindings['select'],
+            $this->bindings['where']
+        );
+    }
+
+    public function toSql(): string
+    {
+        [$sql] = $this->compileSelect();
+        return $sql;
+    }
+
+    public function clear(): void
+    {
+        $this->from = null;
+        $this->columns = ['*'];
+        $this->wheres = [];
+        $this->orders = [];
+        $this->limit = null;
+        $this->offset = null;
+        foreach ($this->bindings as $k => $_) {
+            $this->bindings[$k] = [];
+        }
+    }
+
+    /* ---------------------------
+     * Execution Core
+     * ------------------------- */
+
+    /**
+     * Execute a SELECT statement.
+     * @return array<int, array>|false
+     */
+    protected function execute(string $sql, array $bindings, int $fetchMode = PDO::FETCH_ASSOC): array|false
+    {
+        $pdo = $this->cm->getPdo($this->connection);
+        $stmt = $pdo->prepare($sql);
+
+        $start = microtime(true);
+        $ok = $stmt->execute($bindings);
+        $ms = (microtime(true) - $start) * 1000;
+
+        // Log to DebugPanel if present
+        $this->cm->getDebugPanel()?->addQuery($sql, $bindings, $ms);
+
+        if (!$ok) {
+            return false;
+        }
+        return $stmt->fetchAll($fetchMode);
+    }
+
+    /**
+     * Execute INSERT/UPDATE/DELETE.
+     * @return int affected rows
+     */
+    protected function executeAffecting(string $sql, array $bindings): int
+    {
+        $pdo = $this->cm->getPdo($this->connection);
+        $stmt = $pdo->prepare($sql);
+
+        $start = microtime(true);
+        $ok = $stmt->execute($bindings);
+        $ms = (microtime(true) - $start) * 1000;
+
+        $this->cm->getDebugPanel()?->addQuery($sql, $bindings, $ms);
+
+        if (!$ok) {
+            return 0;
+        }
+        return $stmt->rowCount();
     }
 }
