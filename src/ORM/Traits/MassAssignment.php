@@ -7,7 +7,7 @@ namespace Marwa\DB\ORM\Traits;
 trait MassAssignment
 {
     protected static array $fillable = [];
-    protected static array $guarded = ['*'];
+    protected static array $guarded  = ['*'];
 
     protected static function filterFillable(array $data): array
     {

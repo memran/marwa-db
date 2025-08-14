@@ -1,8 +1,9 @@
 <?php
 
 use Marwa\DB\Schema\Builder as Schema;
+use Marwa\DB\CLI\AbstractMigration;
 
-return new class {
+return new class extends AbstractMigration {
     public function up(): void
     {
         Schema::create('user', function ($table) {

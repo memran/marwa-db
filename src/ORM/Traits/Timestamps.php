@@ -10,7 +10,7 @@ trait Timestamps
     {
         $now = date('Y-m-d H:i:s');
         $data['updated_at'] = $now;
-        if (!isset($this->attributes['created_at'])) {
+        if (!isset($this->attributes['created_at']) && !isset($data['created_at'])) {
             $data['created_at'] = $now;
         }
     }

@@ -4,43 +4,27 @@ declare(strict_types=1);
 
 namespace Marwa\DB\ORM\Traits;
 
-use Marwa\DB\ORM\Model;
-use Marwa\DB\Connection\ConnectionManager;
-
 trait HasRelationships
 {
-    protected static ?ConnectionManager $__cm = null;
-    protected static string $__conn = 'default';
+    /**
+     * Eager-loaded relationship results store.
+     * @var array<string, mixed>
+     */
+    protected array $relations = [];
 
-    public static function setConnectionManager(ConnectionManager $cm, string $conn = 'default'): void
+    public function setRelation(string $name, mixed $value): static
     {
-        static::$__cm = $cm;
-        static::$__conn = $conn;
+        $this->relations[$name] = $value;
+        return $this;
     }
 
-    /** @return Model|null */
-    protected function hasOne(string $related, string $foreignKey, string $localKey = 'id'): ?Model
+    public function getRelation(string $name): mixed
     {
-        $cm = static::$__cm;
-        return $related::query($cm, static::$__conn)->where($foreignKey, '=', $this->getAttribute($localKey))->first()
-            ? new $related($related::query($cm, static::$__conn)->where($foreignKey, '=', $this->getAttribute($localKey))->first())
-            : null;
+        return $this->relations[$name] ?? null;
     }
 
-    /** @return array<int,Model> */
-    protected function hasMany(string $related, string $foreignKey, string $localKey = 'id'): array
+    public function relationLoaded(string $name): bool
     {
-        $cm = static::$__cm;
-        $rows = $related::query($cm, static::$__conn)->where($foreignKey, '=', $this->getAttribute($localKey))->get();
-        return array_map(fn($r) => new $related($r), $rows);
-    }
-
-    /** @return Model|null */
-    protected function belongsTo(string $related, string $foreignKey, string $ownerKey = 'id'): ?Model
-    {
-        $cm = static::$__cm;
-        $id = $this->getAttribute($foreignKey);
-        $row = $related::query($cm, static::$__conn)->where($ownerKey, '=', $id)->first();
-        return $row ? new $related($row) : null;
+        return array_key_exists($name, $this->relations);
     }
 }

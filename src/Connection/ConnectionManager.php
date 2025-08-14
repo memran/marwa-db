@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Marwa\DB\Connection;
 
 use Marwa\DB\Config\Config;
+use Marwa\DB\Support\DebugPanel;
 use Psr\Log\LoggerInterface;
 
 final class ConnectionManager implements ConnectionInterface
 {
     /** @var array<string,\PDO> */
     private array $pool = [];
+
+    private ?DebugPanel $debugPanel = null;
 
     public function __construct(
         private Config $config,
@@ -20,6 +23,15 @@ final class ConnectionManager implements ConnectionInterface
         private ConnectionFactory $factory = new ConnectionFactory()
     ) {}
 
+    public function setDebugPanel(?DebugPanel $panel): void
+    {
+        $this->debugPanel = $panel;
+    }
+
+    public function getDebugPanel(): ?DebugPanel
+    {
+        return $this->debugPanel;
+    }
     public function getPdo(string $name = 'default'): \PDO
     {
         if (!isset($this->pool[$name])) {

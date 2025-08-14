@@ -8,23 +8,36 @@ use Psr\Log\LoggerInterface;
 
 final class QueryLogger
 {
-    /** @var array<int,array{sql:string,bindings:array,time:float,conn:string}> */
-    private array $log = [];
+    /** @var array<int, array{sql:string,bindings:array,time:float,conn:string,error:?string}> */
+    private array $entries = [];
 
     public function __construct(private ?LoggerInterface $logger = null) {}
 
-    public function record(string $conn, string $sql, array $bindings, float $time): void
+    public function log(string $sql, array $bindings, float $timeMs, string $connection, ?string $error = null): void
     {
-        $this->log[] = compact('sql', 'bindings', 'time', 'conn');
-        $this->logger?->info('SQL', ['conn' => $conn, 'sql' => $sql, 'bindings' => $bindings, 'time_ms' => $time * 1000]);
+        $this->entries[] = [
+            'sql'       => $sql,
+            'bindings'  => $bindings,
+            'time'      => $timeMs,
+            'conn'      => $connection,
+            'error'     => $error,
+        ];
+
+        // Optional: also forward to PSR-3
+        $context = ['bindings' => $bindings, 'time_ms' => $timeMs, 'connection' => $connection];
+        $error
+            ? $this->logger?->error("[DB] {$sql}", $context + ['error' => $error])
+            : $this->logger?->info("[DB] {$sql}",  $context);
     }
 
+    /** @return array<int, array{sql:string,bindings:array,time:float,conn:string,error:?string}> */
     public function all(): array
     {
-        return $this->log;
+        return $this->entries;
     }
+
     public function clear(): void
     {
-        $this->log = [];
+        $this->entries = [];
     }
 }

@@ -10,7 +10,7 @@ use Marwa\DB\Logger\QueryLogger;
 use Marwa\DB\Support\Collection;
 use Marwa\DB\Query\Expression;
 use Marwa\DB\Query\Grammar;
-
+use Marwa\DB\Support\DebugPanel;
 
 final class Builder
 {
@@ -28,6 +28,11 @@ final class Builder
         private Grammar $grammar = new Grammar(),
         private ?QueryLogger $logger = null
     ) {}
+
+    private function getDebugPanel(): ?DebugPanel
+    {
+        return $this->cm->getDebugPanel();
+    }
 
     public function table(string $table): self
     {
@@ -55,6 +60,27 @@ final class Builder
         }
         return $this;
     }
+
+    /**
+     * Add a "where in" clause.
+     */
+    public function whereIn(string $column, array $values, bool $not = false): self
+    {
+        $operator = $not ? 'NOT IN' : 'IN';
+        $placeholders = implode(', ', array_fill(0, count($values), '?'));
+        $this->wheres[] = [$column . " {$operator} ({$placeholders})", $values];
+        return $this;
+    }
+
+    /**
+     * Add a "where not in" clause.
+     */
+    public function whereNotIn(string $column, array $values): self
+    {
+        return $this->whereIn($column, $values, true);
+    }
+
+
     /**
      * Add a raw select expression to the query.
      *
@@ -175,6 +201,16 @@ final class Builder
         }
 
         return [$sql, $this->bindings];
+    }
+    public function whereNull(string $column): self
+    {
+        $this->wheres[] = [new \Marwa\DB\Query\Expression($this->grammar->wrap($column) . ' IS NULL'), null];
+        return $this;
+    }
+    public function whereNotNull(string $column): self
+    {
+        $this->wheres[] = [new \Marwa\DB\Query\Expression($this->grammar->wrap($column) . ' IS NOT NULL'), null];
+        return $this;
     }
 
     private function compileWhere(): string
