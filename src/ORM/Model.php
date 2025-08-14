@@ -43,8 +43,11 @@ abstract class Model
         $this->attributes = $attributes;
         $this->original   = $attributes;
         $this->exists     = $exists;
+
+        $this->boot();
     }
 
+    public function boot() {}
     /**
      * Get the fully-resolved table name for this model.
      * If not set, infer from the class name and cache it in static::$table.
