@@ -17,6 +17,8 @@ abstract class Model
 {
     use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships;
 
+    /** @var array<class-string,Closure> */
+    protected static array $globalScopes = [];
     /** Table + key */
     protected static ?string $table = null; // if null, it will be inferred
     protected static string $primaryKey = 'id';
@@ -94,15 +96,45 @@ abstract class Model
         return static::query()->where($col, $op, $val);
     }
 
+    /**
+     * Add a global scope (applies to all queries).
+     * Signature: function($builder): void
+     */
+    public static function addGlobalScope(\Closure $scope, ?string $identifier = null): void
+    {
+        $id = $identifier ?? spl_object_hash($scope);
+        static::$globalScopes[static::class][$id] = $scope;
+    }
+
+    /**
+     * Remove a global scope by identifier (only for next query).
+     */
+    public static function withoutGlobalScope(string $identifier): static
+    {
+        $instance = new static();
+        $instance->disableGlobalScope($identifier);
+        return $instance;
+    }
+
     /** Base low‑level builder for internal writes */
     protected static function baseQuery(): \Marwa\DB\Query\Builder
     {
         if (!static::$cm) {
             throw new \RuntimeException('ConnectionManager not set. Call Model::setConnectionManager().');
         }
-
-        return (new \Marwa\DB\Query\Builder(static::$cm, static::$connection))->table(static::table());
+        $model = new static();
+        // Apply active global scopes
+        $builder = (new \Marwa\DB\Query\Builder(static::$cm, static::$connection))->table(static::table());
+        foreach (static::$globalScopes[static::class] ?? [] as $id => $scope) {
+            if (!isset($model->disabledGlobalScopes[$id])) {
+                $scope($builder);
+            }
+        }
+        return $builder;
     }
+
+
+
 
     /** Apply default soft‑delete filter to a low‑level builder (if available) */
     protected static function applySoftDeleteFilter(\Marwa\DB\Query\Builder $qb): \Marwa\DB\Query\Builder
@@ -467,5 +499,48 @@ abstract class Model
 
         // default: +s
         return $word . 's';
+    }
+
+    /**
+     * Dynamically handle calls to the builder (local scopes).
+     */
+    public function __call(string $method, array $parameters)
+    {
+        $scope = 'scope' . ucfirst($method);
+
+        if (method_exists($this, $scope)) {
+            $builder = $this->baseQuery();
+            return $this->{$scope}($builder, ...$parameters);
+        }
+
+        throw new \InvalidArgumentException("Method {$method} does not exist.");
+    }
+
+    /**
+     * For static calls like User::active().
+     */
+    public static function __callStatic(string $method, array $parameters)
+    {
+        $instance = new static();
+        $scope = 'scope' . ucfirst($method);
+
+        if (method_exists($instance, $scope)) {
+            $builder = $instance->baseQuery();
+            return $instance->{$scope}($builder, ...$parameters);
+        }
+
+        throw new \InvalidArgumentException("Static method {$method} does not exist.");
+    }
+
+    /* -----------------------------------------------------------------
+     | Internal Scope State
+     |------------------------------------------------------------------*/
+
+    /** @var array<string,bool> */
+    protected array $disabledGlobalScopes = [];
+
+    protected function disableGlobalScope(string $identifier): void
+    {
+        $this->disabledGlobalScopes[$identifier] = true;
     }
 }

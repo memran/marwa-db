@@ -8,7 +8,7 @@ return new class extends AbstractMigration {
     {
         Schema::create('users', function ($t) {
             $t->bigIncrements('id');
-            $t->uuid('uuid')->unique(name: 'uniq_users_uuid'); // or: $t->unique('uuid')
+            $t->uuid('uuid')->unique(); // or: $t->unique('uuid')
 
             $t->string('name', 100)->nullable();
             $t->string('email', 190)->unique();

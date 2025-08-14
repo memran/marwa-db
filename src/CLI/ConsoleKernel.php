@@ -32,19 +32,12 @@ final class ConsoleKernel
         $app->add(new MigrateRefreshCommand($this->manager, $this->migrationsPath));
         $app->add(new MakeMigrationCommand($this->migrationsPath));
         $app->add(new MigrateStatusCommand($this->manager, $this->migrationsPath));
-
         $app->add(new MakeSeederCommand());
-
-        // $manager from your bootstrap (ConnectionManager)
-        // $psrLogger optional
-
         $seedRunner = new SeedRunner(
             cm: $this->manager,
             logger: $psrLogger ?? null,
         );
         $app->add(new DbSeedAutoCommand($seedRunner));
-
-
         return $app->run();
     }
 }

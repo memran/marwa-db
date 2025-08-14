@@ -13,8 +13,8 @@ $manager = Bootstrap::init($db, null, true); // enable debug panel in web contex
 
 
 DB::setManager($manager);
-$rows = DB::table('user')
-    ->where('name', 'like', 'J%')
+$rows = DB::table('users')
+    //->where('name', 'like', 'J%')
     ->orderBy('id', 'desc')
     ->limit(5)
     ->get();  // arrays/objects depending on fetch mode
