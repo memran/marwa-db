@@ -3,23 +3,20 @@
   "description": "Lightweight, framework-agnostic PHP database toolkit: connections, query builder, ORM, schema, migrations, seeders, debug panel.",
   "type": "library",
   "license": "MIT",
-  "minimum-stability": "stable",
-  "prefer-stable": true,
   "require": {
     "php": "^8.1",
     "ext-pdo": "*",
     "ext-json": "*",
     "symfony/console": "^7.0",
     "fakerphp/faker": "^1.23",
-    "memran/marwa-logger": "^1.0"
+    "memran/marwa-logger": "dev-main"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5"
   },
   "autoload": {
     "psr-4": {
-      "Marwa\\DB\\": "src/",
-      "App\\": "app/"
+      "Marwa\\DB\\": "src/"
     },
     "files": [
       "src/Support/Helpers.php"
@@ -30,9 +27,6 @@
       "Marwa\\DB\\Tests\\": "tests/"
     }
   },
-  "bin": [
-    "bin/marwa-db"
-  ],
   "scripts": {
     "test": "phpunit -c phpunit.xml.dist",
     "lint": "php -l $(git ls-files '*.php')"
@@ -40,5 +34,7 @@
   "config": {
     "optimize-autoloader": true,
     "sort-packages": true
-  }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }

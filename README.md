@@ -1,7 +1,7 @@
 # Marwa-DB
 
-**memran/marwa-db** is a PSR-compliant, framework-agnostic, Laravel-style database library built on top of PDO.  
-It includes a fluent query builder, Eloquent-style ORM, schema builder, migrations, and connection load balancing.
+**memran/marwa-db** is a PSR-compliant, framework-agnostic, Database library built on top of PDO.  
+It includes a fluent query builder,ORM, schema builder, migrations, and connection load balancing.
 
 ---
 

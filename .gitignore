@@ -9,3 +9,4 @@ composer.lock
 /.env.local
 /database/database.sqlite
 /.DS_Store
+/storage/
