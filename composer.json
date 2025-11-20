@@ -8,14 +8,10 @@
     "ext-json": "*",
     "ext-pdo": "*",
     "fakerphp/faker": "^1.23",
-<<<<<<< HEAD
-    "memran/marwa-logger": "dev-main"
-=======
-    "memran/marwa-debugbar": "^2.0",
-    "memran/marwa-error-handler": "^1.0",
-    "memran/marwa-logger": "^2.0",
+    "memran/marwa-debugbar": "dev-main",
+    "memran/marwa-error-handler": "dev-main",
+    "memran/marwa-logger": "dev-main",
     "symfony/console": "^7.0"
->>>>>>> 873fc8c48edfee3c242232b2f179bbbf2f3425fc
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5"
