@@ -1,7 +1,16 @@
 # Marwa-DB
+[![Latest Version](https://img.shields.io/packagist/v/memran/marwa-db.svg)](https://packagist.org/packages/memran/marwa-db)
+[![Total Downloads](https://img.shields.io/packagist/dt/memran/marwa-db.svg?style=flat-square)](https://packagist.org/packages/memran/marwa-db)
+[![PHP Version](https://img.shields.io/packagist/php-v/memran/marwa-db)](https://php.net)
+[![License](https://img.shields.io/packagist/l/memran/marwa-db)](LICENSE)
 
+<<<<<<< HEAD
 **memran/marwa-db** is a PSR-compliant, framework-agnostic, Database library built on top of PDO.  
 It includes a fluent query builder,ORM, schema builder, migrations, and connection load balancing.
+=======
+**MarwaDB** is a PSR-compliant, framework-agnostic, Laravel-style database library built on top of PDO.  
+It includes a fluent query builder, Eloquent-style ORM, schema builder, migrations, and connection load balancing.
+>>>>>>> 873fc8c48edfee3c242232b2f179bbbf2f3425fc
 
 ---
 
