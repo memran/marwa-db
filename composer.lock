@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "92af77f32bc40085fd5fbe3dc95692d9",
+    "content-hash": "d66b15ef071f998322fbc4e75640c23d",
     "packages": [
         {
             "name": "fakerphp/faker",
@@ -71,36 +71,37 @@
         },
         {
             "name": "memran/marwa-debugbar",
-            "version": "v2.0.0",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "https://github.com/memran/marwa-debugbar.git",
-                "reference": "a519485861613da8e1ee1db79ef139ecfeea5cb4"
+                "reference": "fe887f4a5ecd7870d64a3f7fa08dcc9009bc3807"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/memran/marwa-debugbar/zipball/a519485861613da8e1ee1db79ef139ecfeea5cb4",
-                "reference": "a519485861613da8e1ee1db79ef139ecfeea5cb4",
+                "url": "https://api.github.com/repos/memran/marwa-debugbar/zipball/fe887f4a5ecd7870d64a3f7fa08dcc9009bc3807",
+                "reference": "fe887f4a5ecd7870d64a3f7fa08dcc9009bc3807",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "memran/marwa-support": "^1.0",
-                "php": "^7.4 || ^8.0"
+                "memran/marwa-support": "dev-main",
+                "php": "^7.4 || ^8.0",
+                "symfony/var-dumper": "^5.3"
             },
             "require-dev": {
                 "memran/marwa-logger": "^1.0",
                 "mockery/mockery": "^1.4",
                 "phpstan/phpstan": "^1.4",
                 "phpunit/phpunit": "^9.5",
-                "squizlabs/php_codesniffer": "^3.6",
-                "symfony/var-dumper": "^5.3"
+                "squizlabs/php_codesniffer": "^3.6"
             },
             "suggest": {
                 "monolog/monolog": "For advanced logging integration",
                 "psr/log": "To integrate with PSR-3 compatible loggers",
                 "symfony/var-dumper": "For enhanced variable dumping capabilities"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "branch-alias": {
@@ -135,22 +136,22 @@
             ],
             "support": {
                 "issues": "https://github.com/memran/marwa-debugbar/issues",
-                "source": "https://github.com/memran/marwa-debugbar/tree/v2.0.0"
+                "source": "https://github.com/memran/marwa-debugbar/tree/main"
             },
-            "time": "2025-08-20T14:25:07+00:00"
+            "time": "2025-11-20T07:26:42+00:00"
         },
         {
             "name": "memran/marwa-error-handler",
-            "version": "v1.0.0",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "https://github.com/memran/marwa-error-handler.git",
-                "reference": "c7802a8149e51b3ade6bb394fa4ddc54c879e798"
+                "reference": "a1ef41650d03fa2805acd4c9fc8c56cf4ffcc908"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/memran/marwa-error-handler/zipball/c7802a8149e51b3ade6bb394fa4ddc54c879e798",
-                "reference": "c7802a8149e51b3ade6bb394fa4ddc54c879e798",
+                "url": "https://api.github.com/repos/memran/marwa-error-handler/zipball/a1ef41650d03fa2805acd4c9fc8c56cf4ffcc908",
+                "reference": "a1ef41650d03fa2805acd4c9fc8c56cf4ffcc908",
                 "shasum": ""
             },
             "require": {
@@ -158,8 +159,10 @@
                 "psr/log": "^3.0"
             },
             "require-dev": {
+                "memran/marwa-debugbar": "dev-main",
                 "phpunit/phpunit": "^10.0"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -173,22 +176,22 @@
             "description": "PHP Errorhandler with optional PSR-3 logger, optional Debugbar, and a professional fallback UI.",
             "support": {
                 "issues": "https://github.com/memran/marwa-error-handler/issues",
-                "source": "https://github.com/memran/marwa-error-handler/tree/v1.0.0"
+                "source": "https://github.com/memran/marwa-error-handler/tree/main"
             },
-            "time": "2025-08-21T13:51:01+00:00"
+            "time": "2025-11-20T08:44:56+00:00"
         },
         {
             "name": "memran/marwa-logger",
-            "version": "v2.0.0",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "https://github.com/memran/marwa-logger.git",
-                "reference": "aa8452bdc6d7481af604fe4c3110cd5702f76abc"
+                "reference": "23007c875f5a4740d104f15eff256320953cbee4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/memran/marwa-logger/zipball/aa8452bdc6d7481af604fe4c3110cd5702f76abc",
-                "reference": "aa8452bdc6d7481af604fe4c3110cd5702f76abc",
+                "url": "https://api.github.com/repos/memran/marwa-logger/zipball/23007c875f5a4740d104f15eff256320953cbee4",
+                "reference": "23007c875f5a4740d104f15eff256320953cbee4",
                 "shasum": ""
             },
             "require": {
@@ -198,6 +201,7 @@
             "require-dev": {
                 "phpunit/phpunit": "^10.0"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -211,22 +215,22 @@
             "description": "PSR-3 JSON logger with sensitive-data filtering and pluggable storage (file; Kafka/DB-ready).",
             "support": {
                 "issues": "https://github.com/memran/marwa-logger/issues",
-                "source": "https://github.com/memran/marwa-logger/tree/v2.0.0"
+                "source": "https://github.com/memran/marwa-logger/tree/main"
             },
-            "time": "2025-08-21T13:45:13+00:00"
+            "time": "2025-11-08T12:13:27+00:00"
         },
         {
             "name": "memran/marwa-support",
-            "version": "v1.2.0",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "https://github.com/memran/marwa-support.git",
-                "reference": "5b0e2e36f80260a76f96ba438ae66cc197a89c74"
+                "reference": "a4959f9a4be1f7d65c8aff645e838cdd908f726d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/memran/marwa-support/zipball/5b0e2e36f80260a76f96ba438ae66cc197a89c74",
-                "reference": "5b0e2e36f80260a76f96ba438ae66cc197a89c74",
+                "url": "https://api.github.com/repos/memran/marwa-support/zipball/a4959f9a4be1f7d65c8aff645e838cdd908f726d",
+                "reference": "a4959f9a4be1f7d65c8aff645e838cdd908f726d",
                 "shasum": ""
             },
             "require": {
@@ -237,6 +241,7 @@
             "require-dev": {
                 "phpunit/phpunit": "^9.6"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -256,9 +261,9 @@
             "description": "Marwa support library for PHP 8+ with utility classes for strings, arrays, files, objects, and more",
             "support": {
                 "issues": "https://github.com/memran/marwa-support/issues",
-                "source": "https://github.com/memran/marwa-support/tree/v1.2.0"
+                "source": "https://github.com/memran/marwa-support/tree/main"
             },
-            "time": "2025-08-21T13:59:14+00:00"
+            "time": "2025-11-20T07:36:23+00:00"
         },
         {
             "name": "psr/container",
@@ -864,6 +869,90 @@
             "time": "2024-12-23T08:48:59+00:00"
         },
         {
+            "name": "symfony/polyfill-php80",
+            "version": "v1.33.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/polyfill-php80.git",
+                "reference": "0cc9dd0f17f61d8131e7df6b84bd344899fe2608"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/polyfill-php80/zipball/0cc9dd0f17f61d8131e7df6b84bd344899fe2608",
+                "reference": "0cc9dd0f17f61d8131e7df6b84bd344899fe2608",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2"
+            },
+            "type": "library",
+            "extra": {
+                "thanks": {
+                    "url": "https://github.com/symfony/polyfill",
+                    "name": "symfony/polyfill"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "bootstrap.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php80\\": ""
+                },
+                "classmap": [
+                    "Resources/stubs"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ion Bazan",
+                    "email": "ion.bazan@gmail.com"
+                },
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony polyfill backporting some PHP 8.0+ features to lower PHP versions",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "compatibility",
+                "polyfill",
+                "portable",
+                "shim"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/polyfill-php80/tree/v1.33.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2025-01-02T08:10:11+00:00"
+        },
+        {
             "name": "symfony/service-contracts",
             "version": "v3.6.0",
             "source": {
@@ -1036,6 +1125,95 @@
                 }
             ],
             "time": "2025-07-10T08:47:49+00:00"
+        },
+        {
+            "name": "symfony/var-dumper",
+            "version": "v5.4.48",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/var-dumper.git",
+                "reference": "42f18f170aa86d612c3559cfb3bd11a375df32c8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/42f18f170aa86d612c3559cfb3bd11a375df32c8",
+                "reference": "42f18f170aa86d612c3559cfb3bd11a375df32c8",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2.5",
+                "symfony/polyfill-mbstring": "~1.0",
+                "symfony/polyfill-php80": "^1.16"
+            },
+            "conflict": {
+                "symfony/console": "<4.4"
+            },
+            "require-dev": {
+                "ext-iconv": "*",
+                "symfony/console": "^4.4|^5.0|^6.0",
+                "symfony/http-kernel": "^4.4|^5.0|^6.0",
+                "symfony/process": "^4.4|^5.0|^6.0",
+                "symfony/uid": "^5.1|^6.0",
+                "twig/twig": "^2.13|^3.0.4"
+            },
+            "suggest": {
+                "ext-iconv": "To convert non-UTF-8 strings to UTF-8 (or symfony/polyfill-iconv in case ext-iconv cannot be used).",
+                "ext-intl": "To show region name in time zone dump",
+                "symfony/console": "To use the ServerDumpCommand and/or the bin/var-dump-server script"
+            },
+            "bin": [
+                "Resources/bin/var-dump-server"
+            ],
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "Resources/functions/dump.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Component\\VarDumper\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Provides mechanisms for walking through any arbitrary PHP variable",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "debug",
+                "dump"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/var-dumper/tree/v5.4.48"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2024-11-08T15:21:10+00:00"
         }
     ],
     "packages-dev": [
@@ -1101,16 +1279,16 @@
         },
         {
             "name": "nikic/php-parser",
-            "version": "v5.6.1",
+            "version": "v5.7.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/PHP-Parser.git",
-                "reference": "f103601b29efebd7ff4a1ca7b3eeea9e3336a2a2"
+                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/f103601b29efebd7ff4a1ca7b3eeea9e3336a2a2",
-                "reference": "f103601b29efebd7ff4a1ca7b3eeea9e3336a2a2",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/dca41cd15c2ac9d055ad70dbfd011130757d1f82",
+                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82",
                 "shasum": ""
             },
             "require": {
@@ -1153,9 +1331,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nikic/PHP-Parser/issues",
-                "source": "https://github.com/nikic/PHP-Parser/tree/v5.6.1"
+                "source": "https://github.com/nikic/PHP-Parser/tree/v5.7.0"
             },
-            "time": "2025-08-13T20:13:15+00:00"
+            "time": "2025-12-06T11:56:16+00:00"
         },
         {
             "name": "phar-io/manifest",
@@ -1598,16 +1776,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "10.5.53",
+            "version": "10.5.63",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "32768472ebfb6969e6c7399f1c7b09009723f653"
+                "reference": "33198268dad71e926626b618f3ec3966661e4d90"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/32768472ebfb6969e6c7399f1c7b09009723f653",
-                "reference": "32768472ebfb6969e6c7399f1c7b09009723f653",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/33198268dad71e926626b618f3ec3966661e4d90",
+                "reference": "33198268dad71e926626b618f3ec3966661e4d90",
                 "shasum": ""
             },
             "require": {
@@ -1628,10 +1806,10 @@
                 "phpunit/php-timer": "^6.0.0",
                 "sebastian/cli-parser": "^2.0.1",
                 "sebastian/code-unit": "^2.0.0",
-                "sebastian/comparator": "^5.0.3",
+                "sebastian/comparator": "^5.0.5",
                 "sebastian/diff": "^5.1.1",
                 "sebastian/environment": "^6.1.0",
-                "sebastian/exporter": "^5.1.2",
+                "sebastian/exporter": "^5.1.4",
                 "sebastian/global-state": "^6.0.2",
                 "sebastian/object-enumerator": "^5.0.0",
                 "sebastian/recursion-context": "^5.0.1",
@@ -1679,7 +1857,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/10.5.53"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/10.5.63"
             },
             "funding": [
                 {
@@ -1703,7 +1881,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-08-20T14:40:06+00:00"
+            "time": "2026-01-27T05:48:37+00:00"
         },
         {
             "name": "sebastian/cli-parser",
@@ -1875,16 +2053,16 @@
         },
         {
             "name": "sebastian/comparator",
-            "version": "5.0.3",
+            "version": "5.0.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/comparator.git",
-                "reference": "a18251eb0b7a2dcd2f7aa3d6078b18545ef0558e"
+                "reference": "55dfef806eb7dfeb6e7a6935601fef866f8ca48d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/comparator/zipball/a18251eb0b7a2dcd2f7aa3d6078b18545ef0558e",
-                "reference": "a18251eb0b7a2dcd2f7aa3d6078b18545ef0558e",
+                "url": "https://api.github.com/repos/sebastianbergmann/comparator/zipball/55dfef806eb7dfeb6e7a6935601fef866f8ca48d",
+                "reference": "55dfef806eb7dfeb6e7a6935601fef866f8ca48d",
                 "shasum": ""
             },
             "require": {
@@ -1940,15 +2118,27 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/comparator/issues",
                 "security": "https://github.com/sebastianbergmann/comparator/security/policy",
-                "source": "https://github.com/sebastianbergmann/comparator/tree/5.0.3"
+                "source": "https://github.com/sebastianbergmann/comparator/tree/5.0.5"
             },
             "funding": [
                 {
                     "url": "https://github.com/sebastianbergmann",
                     "type": "github"
+                },
+                {
+                    "url": "https://liberapay.com/sebastianbergmann",
+                    "type": "liberapay"
+                },
+                {
+                    "url": "https://thanks.dev/u/gh/sebastianbergmann",
+                    "type": "thanks_dev"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/sebastian/comparator",
+                    "type": "tidelift"
                 }
             ],
-            "time": "2024-10-18T14:56:07+00:00"
+            "time": "2026-01-24T09:25:16+00:00"
         },
         {
             "name": "sebastian/complexity",
@@ -2141,16 +2331,16 @@
         },
         {
             "name": "sebastian/exporter",
-            "version": "5.1.2",
+            "version": "5.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/exporter.git",
-                "reference": "955288482d97c19a372d3f31006ab3f37da47adf"
+                "reference": "0735b90f4da94969541dac1da743446e276defa6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/exporter/zipball/955288482d97c19a372d3f31006ab3f37da47adf",
-                "reference": "955288482d97c19a372d3f31006ab3f37da47adf",
+                "url": "https://api.github.com/repos/sebastianbergmann/exporter/zipball/0735b90f4da94969541dac1da743446e276defa6",
+                "reference": "0735b90f4da94969541dac1da743446e276defa6",
                 "shasum": ""
             },
             "require": {
@@ -2159,7 +2349,7 @@
                 "sebastian/recursion-context": "^5.0"
             },
             "require-dev": {
-                "phpunit/phpunit": "^10.0"
+                "phpunit/phpunit": "^10.5"
             },
             "type": "library",
             "extra": {
@@ -2207,15 +2397,27 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/exporter/issues",
                 "security": "https://github.com/sebastianbergmann/exporter/security/policy",
-                "source": "https://github.com/sebastianbergmann/exporter/tree/5.1.2"
+                "source": "https://github.com/sebastianbergmann/exporter/tree/5.1.4"
             },
             "funding": [
                 {
                     "url": "https://github.com/sebastianbergmann",
                     "type": "github"
+                },
+                {
+                    "url": "https://liberapay.com/sebastianbergmann",
+                    "type": "liberapay"
+                },
+                {
+                    "url": "https://thanks.dev/u/gh/sebastianbergmann",
+                    "type": "thanks_dev"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/sebastian/exporter",
+                    "type": "tidelift"
                 }
             ],
-            "time": "2024-03-02T07:17:12+00:00"
+            "time": "2025-09-24T06:09:11+00:00"
         },
         {
             "name": "sebastian/global-state",
@@ -2636,16 +2838,16 @@
         },
         {
             "name": "theseer/tokenizer",
-            "version": "1.2.3",
+            "version": "1.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/theseer/tokenizer.git",
-                "reference": "737eda637ed5e28c3413cb1ebe8bb52cbf1ca7a2"
+                "reference": "b7489ce515e168639d17feec34b8847c326b0b3c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/theseer/tokenizer/zipball/737eda637ed5e28c3413cb1ebe8bb52cbf1ca7a2",
-                "reference": "737eda637ed5e28c3413cb1ebe8bb52cbf1ca7a2",
+                "url": "https://api.github.com/repos/theseer/tokenizer/zipball/b7489ce515e168639d17feec34b8847c326b0b3c",
+                "reference": "b7489ce515e168639d17feec34b8847c326b0b3c",
                 "shasum": ""
             },
             "require": {
@@ -2674,7 +2876,7 @@
             "description": "A small library for converting tokenized PHP source code into XML and potentially other formats",
             "support": {
                 "issues": "https://github.com/theseer/tokenizer/issues",
-                "source": "https://github.com/theseer/tokenizer/tree/1.2.3"
+                "source": "https://github.com/theseer/tokenizer/tree/1.3.1"
             },
             "funding": [
                 {
@@ -2682,12 +2884,16 @@
                     "type": "github"
                 }
             ],
-            "time": "2024-03-03T12:36:25+00:00"
+            "time": "2025-11-17T20:03:58+00:00"
         }
     ],
     "aliases": [],
-    "minimum-stability": "stable",
-    "stability-flags": {},
+    "minimum-stability": "dev",
+    "stability-flags": {
+        "memran/marwa-debugbar": 20,
+        "memran/marwa-error-handler": 20,
+        "memran/marwa-logger": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
