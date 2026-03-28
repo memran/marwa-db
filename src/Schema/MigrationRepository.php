@@ -21,6 +21,14 @@ final class MigrationRepository
                     ran_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ',
+            'pgsql' => '
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id SERIAL PRIMARY KEY,
+                    migration VARCHAR(255) NOT NULL,
+                    batch INTEGER NOT NULL,
+                    ran_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ',
             default => '
                 CREATE TABLE IF NOT EXISTS migrations (
                     id INT AUTO_INCREMENT PRIMARY KEY,

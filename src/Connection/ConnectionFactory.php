@@ -9,14 +9,11 @@ final class ConnectionFactory
     public function makePdo(array $config): \PDO
     {
         $driver   = $config['driver']   ?? 'mysql';
-        $host     = $config['host']     ?? '127.0.0.1';
-        $port     = (int)($config['port'] ?? 3306);
-        $dbname   = $config['database'] ?? '';
-        $charset  = $config['charset']  ?? 'utf8mb4';
         $options  = $config['options']  ?? [];
 
         $dsn = match ($driver) {
-            'mysql' => "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}",
+            'mysql' => $this->mysqlDsn($config),
+            'pgsql' => $this->pgsqlDsn($config),
             'sqlite' => $this->sqliteDsn($config),
             default => throw new \InvalidArgumentException("Unsupported driver: {$driver}"),
         };
@@ -33,6 +30,30 @@ final class ConnectionFactory
         );
 
         return $pdo;
+    }
+
+    private function mysqlDsn(array $config): string
+    {
+        $host = $config['host'] ?? '127.0.0.1';
+        $port = (int)($config['port'] ?? 3306);
+        $dbname = $config['database'] ?? '';
+        $charset = $config['charset'] ?? 'utf8mb4';
+
+        return "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
+    }
+
+    private function pgsqlDsn(array $config): string
+    {
+        $host = $config['host'] ?? '127.0.0.1';
+        $port = (int)($config['port'] ?? 5432);
+        $dbname = (string)($config['database'] ?? '');
+        $charset = (string)($config['charset'] ?? 'utf8');
+
+        if ($dbname === '') {
+            throw new \InvalidArgumentException('PostgreSQL connections require a database name.');
+        }
+
+        return "pgsql:host={$host};port={$port};dbname={$dbname};options='--client_encoding={$charset}'";
     }
 
     private function sqliteDsn(array $config): string

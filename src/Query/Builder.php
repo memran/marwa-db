@@ -338,6 +338,26 @@ class Builder
         return $val === null ? null : (float)$val;
     }
 
+    /**
+     * @return array{data:array<int, array>|array<int, object>, total:int, per_page:int, current_page:int, last_page:int}
+     */
+    public function paginate(int $perPage = 15, int $page = 1, int $fetchMode = PDO::FETCH_ASSOC): array
+    {
+        $perPage = max(1, $perPage);
+        $page = max(1, $page);
+
+        $countBuilder = clone $this;
+        $countBuilder->limit = null;
+        $countBuilder->offset = null;
+        $total = $countBuilder->count();
+
+        $dataBuilder = clone $this;
+        $dataBuilder->limit($perPage)->offset(($page - 1) * $perPage);
+        $rows = $dataBuilder->get($fetchMode);
+
+        return (new Pagination())->make($rows, $total, $perPage, $page);
+    }
+
     /* ---------------------------
      * SQL Generation Helpers
      * ------------------------- */
@@ -449,12 +469,26 @@ class Builder
 
     protected function wrap(string $identifier): string
     {
-        // support table.column
+        $quote = $this->identifierQuote();
+
         $parts = explode('.', $identifier);
-        $parts = array_map(function ($p) {
-            return $p === '*' ? '*' : '`' . str_replace('`', '``', $p) . '`';
+        $parts = array_map(function ($p) use ($quote) {
+            return $p === '*' ? '*' : $this->quoteIdentifierPart($p, $quote);
         }, $parts);
         return implode('.', $parts);
+    }
+
+    private function identifierQuote(): string
+    {
+        return match ($this->cm->getDriver($this->connection)) {
+            'pgsql', 'sqlite' => '"',
+            default => '`',
+        };
+    }
+
+    private function quoteIdentifierPart(string $identifier, string $quote): string
+    {
+        return $quote . str_replace($quote, $quote . $quote, $identifier) . $quote;
     }
 
     /* ---------------------------

@@ -87,6 +87,45 @@ final class BuilderTest extends TestCase
         $builder->table('users')->where('email', 'union select', 'x');
     }
 
+    public function testPaginateReturnsExpectedPayload(): void
+    {
+        $builder = $this->makeBuilderWithSqlitePool();
+        $pdo = $this->extractPdo($builder);
+
+        $pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT)');
+        $pdo->exec("INSERT INTO users (email) VALUES ('a@example.com')");
+        $pdo->exec("INSERT INTO users (email) VALUES ('b@example.com')");
+        $pdo->exec("INSERT INTO users (email) VALUES ('c@example.com')");
+
+        $payload = $builder
+            ->table('users')
+            ->orderBy('id', 'asc')
+            ->paginate(2, 2);
+
+        self::assertSame(3, $payload['total']);
+        self::assertSame(2, $payload['per_page']);
+        self::assertSame(2, $payload['current_page']);
+        self::assertSame(2, $payload['last_page']);
+        self::assertCount(1, $payload['data']);
+        self::assertSame('c@example.com', $payload['data'][0]['email']);
+    }
+
+    public function testPostgresDriverUsesDoubleQuotedIdentifiers(): void
+    {
+        $builder = $this->makePostgresBuilder();
+
+        $builder
+            ->table('users')
+            ->select('id', 'email')
+            ->where('email', '=', 'jane@example.com')
+            ->orderBy('id', 'desc');
+
+        self::assertSame(
+            'SELECT "id", "email" FROM "users" WHERE ("email" = ?) ORDER BY "id" DESC',
+            $builder->toSql()
+        );
+    }
+
     private function makeBuilder(): Builder
     {
         $cm = new ConnectionManager(new Config([
@@ -121,6 +160,21 @@ final class BuilderTest extends TestCase
         $setPool($cm, [
             'default' => new PDO('sqlite::memory:'),
         ]);
+
+        return new Builder($cm);
+    }
+
+    private function makePostgresBuilder(): Builder
+    {
+        $cm = new ConnectionManager(new Config([
+            'default' => [
+                'driver' => 'pgsql',
+                'host' => '127.0.0.1',
+                'database' => 'test',
+                'username' => 'postgres',
+                'password' => '',
+            ],
+        ]));
 
         return new Builder($cm);
     }

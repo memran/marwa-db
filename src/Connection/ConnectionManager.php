@@ -117,6 +117,13 @@ final class ConnectionManager implements ConnectionInterface
         return (bool)($cfg['debug'] ?? false);
     }
 
+    public function getDriver(string $name = 'default'): string
+    {
+        $cfg = $this->config->get($name);
+
+        return (string)($cfg['driver'] ?? 'mysql');
+    }
+
     /**
      * @param array<string> $replicas
      */

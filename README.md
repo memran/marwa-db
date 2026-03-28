@@ -12,7 +12,7 @@
 
 ## Features
 
-- MySQL and SQLite connection support with configurable PDO options
+- MySQL, PostgreSQL, and SQLite connection support with configurable PDO options
 - Connection bootstrapping for plain PHP applications and framework integration
 - Fluent query builder with prepared statements, aggregates, ordering, limits, offsets, and collection helpers
 - Active Record style ORM with timestamps, soft deletes, mass-assignment controls, and relationship descriptors
@@ -106,13 +106,13 @@ The package expects a connection array. The most direct format is:
 
 Supported keys:
 
-- `driver`: currently `mysql` or `sqlite`
-- `host`: MySQL host
-- `port`: MySQL port
-- `database`: database name for MySQL, or path / `:memory:` for SQLite
-- `username`: MySQL username
-- `password`: MySQL password
-- `charset`: charset for MySQL connections
+- `driver`: currently `mysql`, `pgsql`, or `sqlite`
+- `host`: MySQL or PostgreSQL host
+- `port`: MySQL or PostgreSQL port
+- `database`: database name for MySQL/PostgreSQL, or path / `:memory:` for SQLite
+- `username`: MySQL or PostgreSQL username
+- `password`: MySQL or PostgreSQL password
+- `charset`: charset / client encoding for MySQL or PostgreSQL connections
 - `options`: extra PDO options
 - `retry`: retry count for connection attempts
 - `retry_delay`: delay between retries in milliseconds
@@ -125,6 +125,23 @@ SQLite example:
     'default' => [
         'driver' => 'sqlite',
         'database' => __DIR__ . '/database/app.sqlite',
+        'debug' => false,
+    ],
+]
+```
+
+PostgreSQL example:
+
+```php
+[
+    'default' => [
+        'driver' => 'pgsql',
+        'host' => '127.0.0.1',
+        'port' => 5432,
+        'database' => 'app',
+        'username' => 'postgres',
+        'password' => '',
+        'charset' => 'utf8',
         'debug' => false,
     ],
 ]
@@ -268,8 +285,18 @@ Common methods:
 - `where()`, `orWhere()`, `whereIn()`, `whereNull()`
 - `orderBy()`, `limit()`, `offset()`
 - `get()`, `first()`, `value()`, `pluck()`
+- `paginate()`
 - `insert()`, `update()`, `delete()`
 - `count()`, `min()`, `max()`, `sum()`, `avg()`
+
+Pagination example:
+
+```php
+$page = DB::table('users')
+    ->where('active', '=', 1)
+    ->orderBy('id', 'desc')
+    ->paginate(15, 2);
+```
 
 ## ORM
 
@@ -425,7 +452,7 @@ return new class extends AbstractMigration {
 
 The package also exposes a few small helper classes for library consumers:
 
-- `Marwa\DB\Query\Pagination` for building simple paginated payloads
+- `Marwa\DB\Query\Pagination` for building paginated payloads manually when you are not calling `Builder::paginate()`
 - `Marwa\DB\Query\Grammar` for identifier wrapping and placeholder generation
 - `Marwa\DB\Logger\QueryLogger` if you want to capture executed query metadata in your application
 - package exception classes under `Marwa\DB\Exceptions\...` for custom error handling

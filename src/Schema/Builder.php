@@ -59,6 +59,7 @@ final class Builder
         $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         return match ($driver) {
             'sqlite' => new SQLiteGrammar(),
+            'pgsql' => new PgSqlGrammar(),
             default  => new MySqlGrammar(), // mysql/mariadb; extend as needed
         };
     }

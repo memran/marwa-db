@@ -29,10 +29,10 @@ final class ConnectionFactoryTest extends TestCase
         $factory = new ConnectionFactory();
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unsupported driver: pgsql');
+        $this->expectExceptionMessage('Unsupported driver: sqlsrv');
 
         $factory->makePdo([
-            'driver' => 'pgsql',
+            'driver' => 'sqlsrv',
         ]);
     }
 }
