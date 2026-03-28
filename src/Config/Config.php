@@ -15,11 +15,24 @@ final class Config
 
     public function get(string $name = 'default'): array
     {
-        return $this->connections[$name] ?? [];
+        if (isset($this->connections[$name]) && is_array($this->connections[$name])) {
+            return $this->connections[$name];
+        }
+
+        if ($name === 'default' && isset($this->connections['default']) && is_string($this->connections['default'])) {
+            $resolved = $this->connections['default'];
+            return $this->connections['connections'][$resolved] ?? [];
+        }
+
+        if (isset($this->connections['connections'][$name]) && is_array($this->connections['connections'][$name])) {
+            return $this->connections['connections'][$name];
+        }
+
+        return [];
     }
 
     public function has(string $name): bool
     {
-        return array_key_exists($name, $this->connections);
+        return $this->get($name) !== [];
     }
 }

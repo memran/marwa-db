@@ -29,6 +29,7 @@ final class MakeMigrationCommandTest extends TestCase
 
             $contents = file_get_contents($files[0]);
             self::assertIsString($contents);
+            self::assertStringContainsString('use Marwa\\DB\\Schema\\Schema;', $contents);
             self::assertStringContainsString('return new class extends AbstractMigration', $contents);
             self::assertStringContainsString("Schema::drop('example');", $contents);
         } finally {

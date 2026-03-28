@@ -10,14 +10,28 @@ final class MigrationRepository
 
     public function ensureTable(): void
     {
-        $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS migrations (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                migration VARCHAR(255) NOT NULL,
-                batch INT NOT NULL,
-                ran_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
+        $driver = (string)$this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        $sql = match ($driver) {
+            'sqlite' => '
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    migration VARCHAR(255) NOT NULL,
+                    batch INTEGER NOT NULL,
+                    ran_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ',
+            default => '
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    migration VARCHAR(255) NOT NULL,
+                    batch INT NOT NULL,
+                    ran_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ',
+        };
+
+        $this->pdo->exec($sql);
     }
 
     public function migrate(): int
@@ -69,6 +83,36 @@ final class MigrationRepository
             $total += $c;
         }
         return $total;
+    }
+
+    /** @return array<string, array{batch:int, ran_at:string}> */
+    public function getRanWithDetails(): array
+    {
+        $this->ensureTable();
+
+        $rows = $this->pdo->query('SELECT migration, batch, ran_at FROM migrations ORDER BY id ASC')->fetchAll();
+        $details = [];
+
+        foreach ($rows ?: [] as $row) {
+            $details[$row['migration']] = [
+                'batch' => (int)$row['batch'],
+                'ran_at' => (string)($row['ran_at'] ?? ''),
+            ];
+        }
+
+        return $details;
+    }
+
+    /** @return array<int, string> */
+    public function getMigrationFiles(): array
+    {
+        $files = glob(rtrim($this->path, '/') . '/*.php') ?: [];
+        sort($files);
+
+        return array_map(
+            static fn(string $file): string => basename($file, '.php'),
+            $files
+        );
     }
 
     /** @return array<int,string> */

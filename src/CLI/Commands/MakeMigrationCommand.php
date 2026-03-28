@@ -42,7 +42,7 @@ final class MakeMigrationCommand extends Command
 
         $stub = <<<PHP
 <?php
-use Marwa\\DB\\Schema\\Builder as Schema;
+use Marwa\\DB\\Schema\\Schema;
 use Marwa\\DB\\CLI\AbstractMigration;
 
 return new class extends AbstractMigration{

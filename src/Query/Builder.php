@@ -10,6 +10,18 @@ use Marwa\DB\Support\Collection;
 
 class Builder
 {
+    private const ALLOWED_OPERATORS = [
+        '=',
+        '<',
+        '>',
+        '<=',
+        '>=',
+        '<>',
+        '!=',
+        'like',
+        'not like',
+    ];
+
     public function __construct(
         protected ConnectionManager $cm,
         protected string $connection = 'default',
@@ -83,6 +95,7 @@ class Builder
     public function where(string $column, string $operator, mixed $value, string $boolean = 'and'): self
     {
         $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $operator = $this->normalizeOperator($operator);
         $this->wheres[] = [
             'type'    => 'Basic',
             'column'  => $column,
@@ -464,6 +477,16 @@ class Builder
             return;
         }
         $this->bindings[$type][] = $value;
+    }
+
+    private function normalizeOperator(string $operator): string
+    {
+        $normalized = strtolower(trim($operator));
+        if (!in_array($normalized, self::ALLOWED_OPERATORS, true)) {
+            throw new \InvalidArgumentException("Unsupported operator [{$operator}].");
+        }
+
+        return $normalized;
     }
 
     /** Return a merged binding list in execution order for the current SQL. */

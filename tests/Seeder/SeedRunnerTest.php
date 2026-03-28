@@ -47,7 +47,7 @@ final class SeedRunnerTest extends TestCase
         }
     }
 
-    public function testDefaultRunnerNamespaceDoesNotMatchGeneratedDatabaseSeeders(): void
+    public function testDefaultRunnerDiscoversSeedersRegardlessOfNamespace(): void
     {
         $dir = sys_get_temp_dir() . '/marwa-db-seed-runner-' . bin2hex(random_bytes(4));
         mkdir($dir, 0775, true);
@@ -61,7 +61,7 @@ final class SeedRunnerTest extends TestCase
         );
 
         try {
-            self::assertSame([], $runner->discoverSeeders());
+            self::assertSame(['Database\\Seeders\\UsersTableSeeder'], $runner->discoverSeeders());
         } finally {
             @unlink($file);
             @rmdir($dir);

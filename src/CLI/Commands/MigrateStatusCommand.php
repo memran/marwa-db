@@ -11,8 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
 use Marwa\DB\Connection\ConnectionManager;
-use Marwa\DB\Query\Builder as QueryBuilder;
-use Marwa\DB\Migrations\MigrationRepository;
+use Marwa\DB\Schema\MigrationRepository;
 
 #[AsCommand(
     name: 'migrate:status',
@@ -39,12 +38,7 @@ final class MigrateStatusCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $onlyPending = (bool)$input->getOption('only-pending');
-
-        // Build a query builder using the existing ConnectionManager
-        $qb = new QueryBuilder($this->manager, 'default');
-
-        // Create repository (expects QueryBuilder)
-        $repo = new MigrationRepository($qb, $this->migrationsPath);
+        $repo = new MigrationRepository($this->manager->getPdo(), $this->migrationsPath);
 
         $ran = $repo->getRanWithDetails();     // ['name' => ['batch'=>..,'ran_at'=>..], ...]
         $all = $repo->getMigrationFiles();     // ['2025_08_01_000000_create_users_table', ...]

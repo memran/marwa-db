@@ -7,6 +7,7 @@ namespace Marwa\DB\Tests\Query;
 use Marwa\DB\Config\Config;
 use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\Query\Builder;
+use InvalidArgumentException;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -74,6 +75,16 @@ final class BuilderTest extends TestCase
         self::assertSame(1, $updated);
         self::assertSame(1, $deleted);
         self::assertSame(0, $remaining);
+    }
+
+    public function testInvalidOperatorIsRejected(): void
+    {
+        $builder = $this->makeBuilder();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported operator');
+
+        $builder->table('users')->where('email', 'union select', 'x');
     }
 
     private function makeBuilder(): Builder

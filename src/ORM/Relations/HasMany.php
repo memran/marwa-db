@@ -35,7 +35,7 @@ final class HasMany extends Relation
 
         /** @var class-string<Model> $rel */
         $rel = $this->related;
-        $rows = $this->qb($rel::$table)->whereIn($this->foreignKey, $parentKeys)->get();
+        $rows = $this->qb($rel::table())->whereIn($this->foreignKey, $parentKeys)->get();
 
         $buckets = [];
         foreach ($rows as $row) {

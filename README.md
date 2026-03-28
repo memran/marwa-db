@@ -213,12 +213,14 @@ php bin/marwa-db db:seed
 
 Seeders live in `database/seeders/` and implement `Marwa\DB\Seeder\Seeder`.
 
-For the current `db:seed` auto-discovery flow, use the `Marwa\DB\Seeder` namespace unless you customize the runner.
+`db:seed` auto-discovers concrete seeders from the seeder directory, so you can organize them under your preferred application namespace.
+
+If you prefer a shared base class for project conventions, extend `Marwa\DB\Seeder\AbstractSeeder`.
 
 ```php
 <?php
 
-namespace Marwa\DB\Seeder;
+namespace Database\Seeders;
 
 use App\Models\User;
 use Marwa\DB\Seeder\Seeder;
@@ -234,6 +236,42 @@ final class UsersTableSeeder implements Seeder
     }
 }
 ```
+
+## Migrations
+
+Migration files live in `database/migrations/` and should return a class extending `Marwa\DB\CLI\AbstractMigration`.
+
+```php
+<?php
+
+use Marwa\DB\CLI\AbstractMigration;
+use Marwa\DB\Schema\Schema;
+
+return new class extends AbstractMigration {
+    public function up(): void
+    {
+        Schema::create('posts', function ($table) {
+            $table->bigIncrements('id');
+            $table->string('title', 150);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::drop('posts');
+    }
+};
+```
+
+## Utility Classes
+
+The package also exposes a few small helper classes for library consumers:
+
+- `Marwa\DB\Query\Pagination` for building simple paginated payloads
+- `Marwa\DB\Query\Grammar` for identifier wrapping and placeholder generation
+- `Marwa\DB\Logger\QueryLogger` if you want to capture executed query metadata in your application
+- package exception classes under `Marwa\DB\Exceptions\...` for custom error handling
 
 ## Debug Panel
 

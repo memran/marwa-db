@@ -31,10 +31,8 @@ final class QueryBuilder
         private string $connection = 'default'
     ) {
         $this->modelClass = $modelClass;
-        /** @var Model $m */
-        $m = new $modelClass();
         $this->qb = (new BaseBuilder($this->cm, $this->connection))
-            ->table($modelClass::$table);
+            ->table($modelClass::table());
     }
 
     /** ---------- Fluent proxies ---------- */

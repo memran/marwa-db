@@ -18,7 +18,7 @@ final class Pagination
             'total' => $total,
             'per_page' => $perPage,
             'current_page' => $page,
-            'last_page' => (int)\ceil(max(1, $total) / max(1, $perPage)),
+            'last_page' => (int) ceil(max(1, $total) / max(1, $perPage)),
         ];
     }
 }

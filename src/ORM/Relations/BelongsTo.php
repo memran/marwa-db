@@ -35,7 +35,7 @@ final class BelongsTo extends Relation
 
         /** @var class-string<Model> $rel */
         $rel = $this->related;
-        $rows = $this->qb($rel::$table)->whereIn($this->ownerKey, $ownerIds)->get();
+        $rows = $this->qb($rel::table())->whereIn($this->ownerKey, $ownerIds)->get();
 
         $owners = [];
         foreach ($rows as $row) {

@@ -17,6 +17,7 @@ final class ConnectionFactory
 
         $dsn = match ($driver) {
             'mysql' => "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}",
+            'sqlite' => $this->sqliteDsn($config),
             default => throw new \InvalidArgumentException("Unsupported driver: {$driver}"),
         };
 
@@ -32,5 +33,15 @@ final class ConnectionFactory
         );
 
         return $pdo;
+    }
+
+    private function sqliteDsn(array $config): string
+    {
+        $database = (string)($config['database'] ?? '');
+        if ($database === '') {
+            throw new \InvalidArgumentException('SQLite connections require a database path or :memory:.');
+        }
+
+        return 'sqlite:' . $database;
     }
 }

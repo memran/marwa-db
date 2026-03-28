@@ -19,7 +19,6 @@ use Marwa\DB\CLI\Commands\DbSeedAutoCommand;
 
 final class ConsoleKernel
 {
-    protected $logger;
     public function __construct(private ConnectionManager $manager, private string $migrationsPath) {}
 
 
@@ -35,7 +34,7 @@ final class ConsoleKernel
         $app->add(new MakeSeederCommand());
         $seedRunner = new SeedRunner(
             cm: $this->manager,
-            logger: $this->logger,
+            logger: null,
         );
         $app->add(new DbSeedAutoCommand($seedRunner));
         return $app->run();

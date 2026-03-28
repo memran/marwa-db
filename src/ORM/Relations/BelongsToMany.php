@@ -106,7 +106,7 @@ final class BelongsToMany extends Relation
         // 3) load related rows
         /** @var class-string<Model> $relCls */
         $relCls = $this->related;
-        $relatedRows = $this->qb($relCls::$table)->whereIn($this->relatedKey, $relatedIds)->get();
+        $relatedRows = $this->qb($relCls::table())->whereIn($this->relatedKey, $relatedIds)->get();
 
         $relatedModelsById = [];
         foreach ($relatedRows as $row) {

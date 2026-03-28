@@ -16,7 +16,7 @@ final class SeedRunner
         private ?LoggerInterface $logger = null,
         private string $connection = 'default',
         private string $seedPath = '',                     // e.g. getcwd().'/database/seeders'
-        private string $seedNamespace = 'Marwa\\DB\\Seeder',
+        private string $seedNamespace = '',
         private array $exclude = ['DatabaseSeeder'],        // class short-names to skip
     ) {}
 
@@ -93,6 +93,8 @@ final class SeedRunner
             return [];
         }
 
+        $before = get_declared_classes();
+
         // Load files
         $files = glob($path . DIRECTORY_SEPARATOR . '*.php') ?: [];
 
@@ -100,11 +102,12 @@ final class SeedRunner
             require_once $file;
         }
 
-        $nsPrefix = rtrim($this->seedNamespace, '\\') . '\\';
+        $declared = array_values(array_diff(get_declared_classes(), $before));
+        $nsPrefix = $this->seedNamespace !== '' ? rtrim($this->seedNamespace, '\\') . '\\' : null;
         $found = [];
 
-        foreach (get_declared_classes() as $cls) {
-            if (!str_starts_with($cls, $nsPrefix)) {
+        foreach ($declared as $cls) {
+            if ($nsPrefix !== null && !str_starts_with($cls, $nsPrefix)) {
                 continue;
             }
             $rc = new ReflectionClass($cls);

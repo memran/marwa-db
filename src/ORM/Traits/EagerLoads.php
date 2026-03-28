@@ -10,11 +10,12 @@ trait EagerLoads
 
     public function load(string ...$relations): static
     {
-        foreach ($relations as $rel) {
-            if (method_exists($this, $rel)) {
-                $this->relations[$rel] = $this->{$rel}();
+        foreach ($relations as $relation) {
+            if (method_exists($this, $relation)) {
+                $this->relations[$relation] = $this->{$relation}();
             }
         }
+
         return $this;
     }
 
@@ -22,6 +23,7 @@ trait EagerLoads
     {
         $instance = new static();
         $instance->eager = $relations;
+
         return $instance;
     }
 }
