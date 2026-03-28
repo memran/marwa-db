@@ -2,6 +2,7 @@
 /vendor/
 composer.lock
 /.idea/
+/.phpstan/
 /.phpunit.cache/
 /coverage/
 .phpunit.result.cache
@@ -10,3 +11,4 @@ composer.lock
 /database/database.sqlite
 /.DS_Store
 /storage/
+/AGENTS.md
