@@ -422,6 +422,123 @@ The package also exposes a few small helper classes for library consumers:
 - `Marwa\DB\Query\Grammar` for identifier wrapping and placeholder generation
 - `Marwa\DB\Logger\QueryLogger` if you want to capture executed query metadata in your application
 - package exception classes under `Marwa\DB\Exceptions\...` for custom error handling
+- support helpers under `Marwa\DB\Support\...`
+
+### Pagination
+
+```php
+use Marwa\DB\Query\Pagination;
+
+$pagination = new Pagination();
+
+$payload = $pagination->make(
+    rows: [['id' => 1], ['id' => 2]],
+    total: 12,
+    perPage: 5,
+    page: 2
+);
+```
+
+Example result:
+
+```php
+[
+    'data' => [['id' => 1], ['id' => 2]],
+    'total' => 12,
+    'per_page' => 5,
+    'current_page' => 2,
+    'last_page' => 3,
+]
+```
+
+### Query Grammar
+
+```php
+use Marwa\DB\Query\Grammar;
+
+$grammar = new Grammar();
+
+$column = $grammar->wrap('users.email');      // `users.email`
+$placeholders = $grammar->parameterize([1, 2, 3]); // ?, ?, ?
+```
+
+### Query Logger
+
+```php
+use Marwa\DB\Logger\QueryLogger;
+
+$queryLogger = new QueryLogger();
+
+$queryLogger->log(
+    'SELECT * FROM users WHERE id = ?',
+    [10],
+    1.42,
+    'default'
+);
+
+$entries = $queryLogger->all();
+```
+
+### Debug Panel
+
+```php
+use Marwa\DB\Support\DebugPanel;
+
+$panel = new DebugPanel();
+$panel->addQuery('SELECT * FROM users', [], 0.85);
+
+echo $panel->render();
+```
+
+### Collection
+
+```php
+use Marwa\DB\Support\Collection;
+
+$collection = new Collection([
+    ['name' => 'A', 'score' => 10],
+    ['name' => 'B', 'score' => 25],
+]);
+
+$total = $collection->sum('score');
+$average = $collection->avg('score');
+$first = $collection->first();
+$filtered = $collection->filter(fn ($row) => $row['score'] > 10)->toArray();
+```
+
+### Arr
+
+```php
+use Marwa\DB\Support\Arr;
+
+$email = Arr::get($_POST, 'email', 'guest@example.com');
+```
+
+### Str
+
+```php
+use Marwa\DB\Support\Str;
+
+$value = Str::camel('user_profile_name'); // userProfileName
+```
+
+### Helpers
+
+```php
+use Marwa\DB\Support\Helpers;
+
+$timestamp = Helpers::now(); // 2026-03-28 18:00:00
+```
+
+### Exceptions
+
+Use the package exception classes if you want a library-specific error contract in your application code:
+
+```php
+use Marwa\DB\Exceptions\QueryException;
+
+throw new QueryException('Invalid query state.');
+```
 
 ## Debug Panel
 
