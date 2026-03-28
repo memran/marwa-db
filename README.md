@@ -27,6 +27,116 @@
 composer require memran/marwa-db
 ```
 
+## Using In Another Project Or Framework
+
+You can use `Marwa DB` inside a plain PHP app or integrate it into another framework as a standalone database layer.
+
+Typical setup steps:
+
+1. Install the package with Composer.
+2. Create a database config array or config file.
+3. Bootstrap a `ConnectionManager`.
+4. Register the manager with `DB`, `Model`, and `Schema` if you use those APIs.
+5. Point migrations and seeders to your application's `database/` directory.
+
+Minimal bootstrap example:
+
+```php
+<?php
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Marwa\DB\Bootstrap;
+use Marwa\DB\Facades\DB;
+use Marwa\DB\ORM\Model;
+use Marwa\DB\Schema\Schema;
+
+$config = [
+    'default' => [
+        'driver' => 'mysql',
+        'host' => '127.0.0.1',
+        'port' => 3306,
+        'database' => 'app',
+        'username' => 'root',
+        'password' => '',
+        'charset' => 'utf8mb4',
+        'retry' => 3,
+        'retry_delay' => 300,
+        'debug' => false,
+    ],
+];
+
+$manager = Bootstrap::init($config, null, false);
+
+DB::setManager($manager);
+Model::setConnectionManager($manager);
+Schema::init($manager);
+```
+
+In a framework, this usually belongs in a service provider, bootstrap file, or container registration step.
+
+## Configuration Reference
+
+The package expects a connection array. The most direct format is:
+
+```php
+[
+    'default' => [
+        'driver' => 'mysql',
+        'host' => '127.0.0.1',
+        'port' => 3306,
+        'database' => 'app',
+        'username' => 'root',
+        'password' => '',
+        'charset' => 'utf8mb4',
+        'options' => [],
+        'retry' => 3,
+        'retry_delay' => 300,
+        'debug' => false,
+    ],
+]
+```
+
+Supported keys:
+
+- `driver`: currently `mysql` or `sqlite`
+- `host`: MySQL host
+- `port`: MySQL port
+- `database`: database name for MySQL, or path / `:memory:` for SQLite
+- `username`: MySQL username
+- `password`: MySQL password
+- `charset`: charset for MySQL connections
+- `options`: extra PDO options
+- `retry`: retry count for connection attempts
+- `retry_delay`: delay between retries in milliseconds
+- `debug`: enables query debug collection
+
+SQLite example:
+
+```php
+[
+    'default' => [
+        'driver' => 'sqlite',
+        'database' => __DIR__ . '/database/app.sqlite',
+        'debug' => false,
+    ],
+]
+```
+
+Legacy config shape is also supported:
+
+```php
+[
+    'default' => 'sqlite',
+    'connections' => [
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+        ],
+    ],
+]
+```
+
 ## Project Layout
 
 - `src/` core library code
@@ -58,6 +168,44 @@ return [
         'debug'       => true,
     ],
 ];
+```
+
+For another project, you can keep this config in:
+
+- `config/database.php`
+- environment-driven bootstrap code
+- a framework service container binding
+- a package-specific config class
+
+## Recommended Application Structure
+
+When using this package in another project, this layout works well:
+
+- `config/database.php`
+- `app/Models/`
+- `database/migrations/`
+- `database/seeders/`
+- `bootstrap/db.php`
+
+Example `bootstrap/db.php`:
+
+```php
+<?php
+
+use Marwa\DB\Bootstrap;
+use Marwa\DB\Facades\DB;
+use Marwa\DB\ORM\Model;
+use Marwa\DB\Schema\Schema;
+
+$config = require __DIR__ . '/../config/database.php';
+
+$manager = Bootstrap::init($config, null, false);
+
+DB::setManager($manager);
+Model::setConnectionManager($manager);
+Schema::init($manager);
+
+return $manager;
 ```
 
 ## Quick Start
@@ -208,6 +356,8 @@ php bin/marwa-db migrate:status
 php bin/marwa-db make:seeder UsersTableSeeder
 php bin/marwa-db db:seed
 ```
+
+If you are using this package outside this repository, you can still use the same CLI flow by exposing your own script that boots your app config and points to your project's `database/migrations` directory.
 
 ## Seeders
 
