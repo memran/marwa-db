@@ -35,7 +35,7 @@ final class ConsoleKernel
         $app->add(new MakeSeederCommand());
         $seedRunner = new SeedRunner(
             cm: $this->manager,
-            logger: $psrLogger ?? null,
+            logger: $this->logger,
         );
         $app->add(new DbSeedAutoCommand($seedRunner));
         return $app->run();
