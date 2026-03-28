@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Marwa\DB\Schema;
 
 use Marwa\DB\Connection\ConnectionManager;
-use Marwa\DB\Schema\Builder;
 
 class Schema
 {
@@ -18,7 +19,7 @@ class Schema
             $cm = $GLOBALS['cm'];
         }
 
-        static::$factory = new Builder($cm);
+        static::$factory = new Builder($cm, $connectionName ?? 'default');
     }
 
     /**

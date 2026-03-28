@@ -6,5 +6,5 @@ namespace Marwa\DB\Connection;
 
 interface ConnectionInterface
 {
-    public function getPdo(string $name = 'default'): \PDO;
+    public function getPdo(?string $name = 'default'): \PDO;
 }

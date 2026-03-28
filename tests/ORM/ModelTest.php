@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Marwa\DB\Tests\ORM;
 
+use Marwa\DB\Config\Config;
+use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\ORM\Model;
 use PHPUnit\Framework\TestCase;
 
@@ -32,6 +34,27 @@ final class ModelTest extends TestCase
         self::assertNull($model->getAttribute('name'));
         self::assertNull($model->getAttribute('email'));
     }
+
+    public function testDestroyAcceptsScalarPrimaryKey(): void
+    {
+        $manager = new ConnectionManager(new Config([
+            'default' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+            ],
+        ]));
+        $pdo = $manager->getPdo();
+        $pdo->exec('CREATE TABLE destroy_users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
+        $pdo->exec("INSERT INTO destroy_users (name) VALUES ('Alice')");
+        $pdo->exec("INSERT INTO destroy_users (name) VALUES ('Bob')");
+
+        DestroyUser::setConnectionManager($manager);
+
+        $deleted = DestroyUser::destroy(1);
+
+        self::assertSame(1, $deleted);
+        self::assertSame(1, (int) $pdo->query('SELECT COUNT(*) FROM destroy_users')->fetchColumn());
+    }
 }
 
 final class FillableUser extends Model
@@ -50,4 +73,9 @@ final class GuardedUser extends Model
     {
         return new static(static::filterFillable($attributes), true);
     }
+}
+
+final class DestroyUser extends Model
+{
+    protected static ?string $table = 'destroy_users';
 }

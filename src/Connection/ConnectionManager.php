@@ -63,15 +63,17 @@ final class ConnectionManager implements ConnectionInterface
         }
     }
 
-    public function getPdo(string $name = 'default'): \PDO
+    public function getPdo(?string $name = 'default'): \PDO
     {
+        $name = $name ?: 'default';
+
         if (!isset($this->pool[$name])) {
             $this->pool[$name] = $this->connectWithRetry($name);
         }
         return $this->pool[$name];
     }
 
-    public function getConnection(string $name = 'default'): \PDO
+    public function getConnection(?string $name = 'default'): \PDO
     {
         return $this->getPdo($name);
     }

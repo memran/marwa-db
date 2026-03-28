@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Marwa\DB\Seeder;
 
 use Marwa\DB\Connection\ConnectionManager;
+use Marwa\DB\Facades\DB;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use Marwa\DB\ORM\Model;
@@ -24,6 +25,7 @@ final class SeedRunner
     public function runAll(bool $wrapInTransaction = true, ?array $only = null, array $except = []): void
     {
         $classes = $this->discoverSeeders();
+        DB::setManager($this->cm);
         Model::setConnectionManager($this->cm);
 
         // Filter by --only / --except + default exclusions
@@ -66,6 +68,8 @@ final class SeedRunner
         if (!class_exists($fqcn)) {
             throw new \InvalidArgumentException("Seeder class {$fqcn} not found.");
         }
+        DB::setManager($this->cm);
+        Model::setConnectionManager($this->cm);
         $exec = function () use ($fqcn) {
             /** @var Seeder $instance */
             $instance = new $fqcn();

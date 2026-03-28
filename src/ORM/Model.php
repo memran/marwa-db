@@ -269,6 +269,7 @@ abstract class Model
     {
         $instance = new static();
         $pk       = $instance->getPrimaryKey();
+        $ids      = is_array($ids) ? $ids : [$ids];
         $qb       = $instance->baseQuery()->whereIn($pk, $ids);
 
         // Soft delete enabled → update deleted_at timestamp
