@@ -1,4 +1,4 @@
-# Marwa DB
+# Marwa DB Toolkit
 
 [![CI](https://github.com/memran/marwa-db/actions/workflows/ci.yml/badge.svg)](https://github.com/memran/marwa-db/actions/workflows/ci.yml)
 [![PHPUnit](https://img.shields.io/badge/tests-PHPUnit%2010-0E9F6E)](https://phpunit.de/)
@@ -8,20 +8,19 @@
 [![Downloads](https://img.shields.io/packagist/dt/memran/marwa-db.svg)](https://packagist.org/packages/memran/marwa-db)
 [![License](https://img.shields.io/packagist/l/memran/marwa-db)](LICENSE)
 
-`Marwa DB` is a lightweight, framework-agnostic PHP database toolkit built on top of PDO. It provides a fluent query builder, an Eloquent-style ORM, schema helpers, migrations, seeders, and a simple debug panel.
+`Marwa DB Toolkit` is a framework-agnostic PHP database library built on top of PDO. It combines connection management, a fluent query builder, an Active Record style ORM, schema tools, migrations, seeders, and lightweight debugging utilities in a single package.
 
 ## Features
 
-- PDO-based connection management
-- Fluent query builder with prepared statements
-- Active Record style ORM with:
-  - timestamps
-  - soft deletes
-  - fillable / guarded protection
-  - relationship helpers
-- Schema builder for tables, indexes, and foreign keys
-- CLI tools for migrations and seeders
-- Query inspection through a small debug panel
+- MySQL and SQLite connection support with configurable PDO options
+- Connection bootstrapping for plain PHP applications and framework integration
+- Fluent query builder with prepared statements, aggregates, ordering, limits, offsets, and collection helpers
+- Active Record style ORM with timestamps, soft deletes, mass-assignment controls, and relationship descriptors
+- Schema builder for tables, columns, indexes, foreign keys, and rename/drop operations
+- Migration repository and CLI commands for create, migrate, rollback, refresh, and status checks
+- Seeder discovery and execution from application `database/seeders` directories
+- Utility classes for pagination, query logging, debug rendering, collections, array access, and string helpers
+- PHPUnit, PHPStan, and CI workflow support for package development and release validation
 
 ## Requirements
 
