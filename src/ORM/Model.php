@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Marwa\DB\ORM;
 
-use Exception;
 use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\Support\Helpers;
 use Marwa\DB\ORM\Traits\Timestamps;
@@ -13,6 +12,7 @@ use Marwa\DB\ORM\Traits\MassAssignment;
 use Marwa\DB\ORM\Traits\CastsAttributes;
 use Marwa\DB\ORM\Traits\HasRelationships;
 
+/** @phpstan-consistent-constructor */
 abstract class Model
 {
     use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships;

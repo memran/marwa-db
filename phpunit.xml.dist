@@ -7,8 +7,12 @@
     cacheDirectory=".phpunit.cache"
 >
     <testsuites>
-        <testsuite name="Marwa DB Test Suite">
+        <testsuite name="Unit">
             <directory>tests</directory>
+            <exclude>tests/Integration</exclude>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
         </testsuite>
     </testsuites>
 </phpunit>

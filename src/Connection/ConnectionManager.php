@@ -38,7 +38,6 @@ final class ConnectionManager implements ConnectionInterface
     /**
      * Run a set of queries inside a database transaction.
      *
-     * @template T
      * @param Closure $callback The callback to run in the transaction. The PDO instance will be passed as the first argument.
      * @param string|null $connectionName Optional connection name, defaults to the default connection.
      * @return mixed The return value of the callback.
