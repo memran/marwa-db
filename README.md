@@ -1,5 +1,13 @@
 # Marwa DB
 
+[![CI](https://github.com/memran/marwa-db/actions/workflows/ci.yml/badge.svg)](https://github.com/memran/marwa-db/actions/workflows/ci.yml)
+[![PHPUnit](https://img.shields.io/badge/tests-PHPUnit%2010-0E9F6E)](https://phpunit.de/)
+[![PHPStan](https://img.shields.io/badge/static%20analysis-PHPStan-6C43E0)](https://phpstan.org/)
+[![PHP Version](https://img.shields.io/packagist/php-v/memran/marwa-db)](https://packagist.org/packages/memran/marwa-db)
+[![Latest Version](https://img.shields.io/packagist/v/memran/marwa-db.svg)](https://packagist.org/packages/memran/marwa-db)
+[![Downloads](https://img.shields.io/packagist/dt/memran/marwa-db.svg)](https://packagist.org/packages/memran/marwa-db)
+[![License](https://img.shields.io/packagist/l/memran/marwa-db)](LICENSE)
+
 `Marwa DB` is a lightweight, framework-agnostic PHP database toolkit built on top of PDO. It provides a fluent query builder, an Eloquent-style ORM, schema helpers, migrations, seeders, and a simple debug panel.
 
 ## Features
