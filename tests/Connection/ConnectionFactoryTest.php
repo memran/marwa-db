@@ -35,4 +35,19 @@ final class ConnectionFactoryTest extends TestCase
             'driver' => 'sqlsrv',
         ]);
     }
+
+    public function testMysqlConnectionsRequireDatabaseName(): void
+    {
+        $factory = new ConnectionFactory();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('MySQL connections require a database name.');
+
+        $factory->makePdo([
+            'driver' => 'mysql',
+            'host' => '127.0.0.1',
+            'username' => 'root',
+            'password' => '',
+        ]);
+    }
 }

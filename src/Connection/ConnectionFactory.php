@@ -8,8 +8,8 @@ final class ConnectionFactory
 {
     public function makePdo(array $config): \PDO
     {
-        $driver   = $config['driver']   ?? 'mysql';
-        $options  = $config['options']  ?? [];
+        $driver = $config['driver'] ?? 'mysql';
+        $options = $config['options'] ?? [];
 
         $dsn = match ($driver) {
             'mysql' => $this->mysqlDsn($config),
@@ -34,20 +34,24 @@ final class ConnectionFactory
 
     private function mysqlDsn(array $config): string
     {
-        $host = $config['host'] ?? '127.0.0.1';
-        $port = (int)($config['port'] ?? 3306);
-        $dbname = $config['database'] ?? '';
-        $charset = $config['charset'] ?? 'utf8mb4';
+        $host = trim((string) ($config['host'] ?? '127.0.0.1'));
+        $port = (int) ($config['port'] ?? 3306);
+        $dbname = trim((string) ($config['database'] ?? ''));
+        $charset = trim((string) ($config['charset'] ?? 'utf8mb4'));
+
+        if ($dbname === '') {
+            throw new \InvalidArgumentException('MySQL connections require a database name.');
+        }
 
         return "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
     }
 
     private function pgsqlDsn(array $config): string
     {
-        $host = $config['host'] ?? '127.0.0.1';
-        $port = (int)($config['port'] ?? 5432);
-        $dbname = (string)($config['database'] ?? '');
-        $charset = (string)($config['charset'] ?? 'utf8');
+        $host = trim((string) ($config['host'] ?? '127.0.0.1'));
+        $port = (int) ($config['port'] ?? 5432);
+        $dbname = trim((string) ($config['database'] ?? ''));
+        $charset = trim((string) ($config['charset'] ?? 'utf8'));
 
         if ($dbname === '') {
             throw new \InvalidArgumentException('PostgreSQL connections require a database name.');
@@ -58,7 +62,7 @@ final class ConnectionFactory
 
     private function sqliteDsn(array $config): string
     {
-        $database = (string)($config['database'] ?? '');
+        $database = trim((string) ($config['database'] ?? ''));
         if ($database === '') {
             throw new \InvalidArgumentException('SQLite connections require a database path or :memory:.');
         }

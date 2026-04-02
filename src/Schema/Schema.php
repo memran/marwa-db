@@ -16,6 +16,10 @@ class Schema
     public static function init(?ConnectionManager $cm = null, ?string $connectionName = null): void
     {
         if (is_null($cm)) {
+            if (!isset($GLOBALS['cm']) || !$GLOBALS['cm'] instanceof ConnectionManager) {
+                throw new \RuntimeException('Schema builder not initialized. Pass a ConnectionManager to Schema::init().');
+            }
+
             $cm = $GLOBALS['cm'];
         }
 

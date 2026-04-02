@@ -16,9 +16,9 @@ final class Builder
 
     public static function useConnectionManager(ConnectionManager $cm): self
     {
-        $newInstance = new self($cm); // Or new MyClass();
-        return $newInstance;
+        return new self($cm);
     }
+
     /** Run a callback to define a new table. */
     public function create(string $table, \Closure $callback): void
     {

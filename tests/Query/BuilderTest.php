@@ -126,6 +126,31 @@ final class BuilderTest extends TestCase
         );
     }
 
+    public function testAggregateAndProjectionHelpersDoNotMutateBuilderState(): void
+    {
+        $builder = $this->makeBuilderWithSqlitePool();
+        $pdo = $this->extractPdo($builder);
+
+        $pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, status TEXT)');
+        $pdo->exec("INSERT INTO users (email, status) VALUES ('first@example.com', 'active')");
+        $pdo->exec("INSERT INTO users (email, status) VALUES ('second@example.com', 'inactive')");
+
+        $query = $builder
+            ->table('users')
+            ->select('id', 'email')
+            ->where('status', '=', 'active')
+            ->orderBy('id', 'desc');
+
+        $sqlBefore = $query->toSql();
+        $bindingsBefore = $query->getBindings();
+
+        self::assertSame(1, $query->count());
+        self::assertSame('first@example.com', $query->value('email'));
+        self::assertSame(['first@example.com'], $query->pluck('email')->toArray());
+        self::assertSame($sqlBefore, $query->toSql());
+        self::assertSame($bindingsBefore, $query->getBindings());
+    }
+
     private function makeBuilder(): Builder
     {
         $cm = new ConnectionManager(new Config([

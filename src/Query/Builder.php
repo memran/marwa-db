@@ -203,17 +203,17 @@ class Builder
 
     public function first(int $fetchMode = PDO::FETCH_ASSOC): array|object|null
     {
-        $prev = $this->limit;
-        $this->limit(1);
-        $rows = $this->get($fetchMode);
-        $this->limit = $prev;
+        $query = clone $this;
+        $query->limit(1);
+        $rows = $query->get($fetchMode);
 
         return $rows[0] ?? null;
     }
 
     public function value(string $column): mixed
     {
-        $row = $this->select($column)->first(PDO::FETCH_ASSOC);
+        $query = clone $this;
+        $row = $query->select($column)->first(PDO::FETCH_ASSOC);
         if ($row === null) {
             return null;
         }
@@ -222,7 +222,8 @@ class Builder
 
     public function pluck(string $column): Collection
     {
-        $rows = $this->select($column)->get(PDO::FETCH_ASSOC);
+        $query = clone $this;
+        $rows = $query->select($column)->get(PDO::FETCH_ASSOC);
         $out = [];
         foreach ($rows as $r) {
             $out[] = is_array($r) ? ($r[$column] ?? null) : ($r->$column ?? null);
@@ -303,37 +304,37 @@ class Builder
 
     public function count(string $column = '*'): int
     {
-        $this->columns = [new Expression('COUNT(' . ($column === '*' ? '*' : $this->wrap($column)) . ') AS aggregate')];
-        $row = $this->first(PDO::FETCH_ASSOC);
+        $query = $this->aggregateQuery('COUNT(' . ($column === '*' ? '*' : $this->wrap($column)) . ') AS aggregate');
+        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
         return (int) (is_array($row) ? ($row['aggregate'] ?? 0) : ($row->aggregate ?? 0));
     }
 
     public function max(string $column): mixed
     {
-        $this->columns = [new Expression('MAX(' . $this->wrap($column) . ') AS aggregate')];
-        $row = $this->first(PDO::FETCH_ASSOC);
+        $query = $this->aggregateQuery('MAX(' . $this->wrap($column) . ') AS aggregate');
+        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
         return is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
     }
 
     public function min(string $column): mixed
     {
-        $this->columns = [new Expression('MIN(' . $this->wrap($column) . ') AS aggregate')];
-        $row = $this->first(PDO::FETCH_ASSOC);
+        $query = $this->aggregateQuery('MIN(' . $this->wrap($column) . ') AS aggregate');
+        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
         return is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
     }
 
     public function sum(string $column): int|float|null
     {
-        $this->columns = [new Expression('SUM(' . $this->wrap($column) . ') AS aggregate')];
-        $row = $this->first(PDO::FETCH_ASSOC);
+        $query = $this->aggregateQuery('SUM(' . $this->wrap($column) . ') AS aggregate');
+        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
         $val = is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
         return $val === null ? null : (is_numeric($val) ? +$val : null);
     }
 
     public function avg(string $column): ?float
     {
-        $this->columns = [new Expression('AVG(' . $this->wrap($column) . ') AS aggregate')];
-        $row = $this->first(PDO::FETCH_ASSOC);
+        $query = $this->aggregateQuery('AVG(' . $this->wrap($column) . ') AS aggregate');
+        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
         $val = is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
         return $val === null ? null : (float)$val;
     }
@@ -521,6 +522,17 @@ class Builder
         }
 
         return $normalized;
+    }
+
+    private function aggregateQuery(string $expression): self
+    {
+        $query = clone $this;
+        $query->columns = [new Expression($expression)];
+        $query->orders = [];
+        $query->limit = null;
+        $query->offset = null;
+
+        return $query;
     }
 
     /** Return a merged binding list in execution order for the current SQL. */

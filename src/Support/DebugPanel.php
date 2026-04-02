@@ -27,20 +27,20 @@ final class DebugPanel
         }
 
         ob_start();
-        echo '<div><strong>Debug Panel — ' . count($this->queries) . ' queries</strong></div>';
+        echo '<div><strong>Debug Panel - ' . count($this->queries) . ' queries</strong></div>';
         echo '<table border="1" cellpadding="5" cellspacing="0" style="font-size:12px;font-family:monospace;">';
         echo '<thead><tr><th>#</th><th>SQL</th><th>Bindings</th><th>Time</th></tr></thead><tbody>';
 
         foreach ($this->queries as $i => $q) {
             echo '<tr>';
             echo '<td>' . ($i + 1) . '</td>';
-            echo '<td>' . htmlspecialchars($q['sql']) . '</td>';
-            echo '<td>' . htmlspecialchars(json_encode($q['bindings'], JSON_UNESCAPED_UNICODE)) . '</td>';
+            echo '<td>' . htmlspecialchars($q['sql'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars((string) json_encode($q['bindings'], JSON_UNESCAPED_UNICODE), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
             echo '<td>' . $q['time'] . '</td>';
             echo '</tr>';
         }
 
         echo '</tbody></table>';
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 }
