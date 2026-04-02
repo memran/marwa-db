@@ -251,12 +251,10 @@ abstract class Model
      */
     public function getPrimaryKey(): string
     {
-        // If model has explicitly set $primaryKey
-        if (property_exists($this, 'primaryKey') && !empty($this->primaryKey)) {
-            return $this->primaryKey;
+        if (static::$primaryKey !== '') {
+            return static::$primaryKey;
         }
 
-        // Default fallback
         return 'id';
     }
     /**
