@@ -6,7 +6,7 @@ namespace Marwa\DB\Connection;
 
 final class ConnectionFactory
 {
-    public function makePdo(array $config): \PDO
+    public function makePdo(array $config, ?callable $recorder = null, string $connectionName = 'default'): \PDO
     {
         $driver = $config['driver'] ?? 'mysql';
         $options = $config['options'] ?? [];
@@ -18,7 +18,7 @@ final class ConnectionFactory
             default => throw new \InvalidArgumentException("Unsupported driver: {$driver}"),
         };
 
-        $pdo = new \PDO(
+        $pdo = new InstrumentedPdo(
             $dsn,
             $config['username'] ?? '',
             $config['password'] ?? '',
@@ -26,7 +26,9 @@ final class ConnectionFactory
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 \PDO::ATTR_EMULATE_PREPARES => false,
-            ]
+            ],
+            $recorder,
+            $connectionName
         );
 
         return $pdo;

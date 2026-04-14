@@ -13,6 +13,7 @@
     "symfony/string": "^7.3"
   },
   "require-dev": {
+    "memran/marwa-debugbar": "1.1.0",
     "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^10.5.62"
   },

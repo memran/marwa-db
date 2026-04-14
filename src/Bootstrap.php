@@ -6,6 +6,8 @@ namespace Marwa\DB;
 
 use Marwa\DB\Config\Config;
 use Marwa\DB\Connection\ConnectionManager;
+use Marwa\DB\Logger\QueryLogger;
+use Marwa\DB\Support\DebugBarAdapter;
 use Marwa\DB\Support\DebugPanel;
 use Psr\Log\LoggerInterface;
 
@@ -19,6 +21,8 @@ final class Bootstrap
 
         if ($enableDebugPanel) {
             $manager->setDebugPanel(new DebugPanel());
+            $manager->setDebugBar(DebugBarAdapter::createDefault($logger));
+            $manager->setQueryLogger(new QueryLogger($logger));
         }
         $manager->setAsGlobal();
         return $manager;

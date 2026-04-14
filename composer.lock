@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5313d0e4ff3939a74cd980d75689caba",
+    "content-hash": "ca1cab4887748ec68ca9559440f3deb5",
     "packages": [
         {
             "name": "fakerphp/faker",
@@ -852,6 +852,133 @@
         }
     ],
     "packages-dev": [
+        {
+            "name": "memran/marwa-debugbar",
+            "version": "v1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/memran/marwa-debugbar.git",
+                "reference": "5f39aa46b689f30dca5d16a4ba7e9e9340bdaaa5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/memran/marwa-debugbar/zipball/5f39aa46b689f30dca5d16a4ba7e9e9340bdaaa5",
+                "reference": "5f39aa46b689f30dca5d16a4ba7e9e9340bdaaa5",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "memran/marwa-support": "^1.0",
+                "php": "^8.1",
+                "psr/log": "^1.1 || ^2.0 || ^3.0"
+            },
+            "require-dev": {
+                "memran/marwa-logger": "^1.0",
+                "mockery/mockery": "^1.4",
+                "phpstan/phpstan": "^1.4",
+                "phpunit/phpunit": "^9.5",
+                "squizlabs/php_codesniffer": "^3.6",
+                "symfony/var-dumper": "^5.3"
+            },
+            "suggest": {
+                "monolog/monolog": "For advanced logging integration",
+                "psr/log": "To integrate with PSR-3 compatible loggers",
+                "symfony/var-dumper": "For enhanced variable dumping capabilities",
+                "twig/twig": "To use the optional Twig dump extension"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Helpers.php"
+                ],
+                "psr-4": {
+                    "Marwa\\DebugBar\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mohammad Emran",
+                    "email": "memran.dhk@gmail.com"
+                }
+            ],
+            "description": "A lightweight, framework-agnostic PHP debug bar with profiling capabilities",
+            "keywords": [
+                "debug",
+                "debugbar",
+                "debugging",
+                "performance",
+                "profiler"
+            ],
+            "support": {
+                "issues": "https://github.com/memran/marwa-debugbar/issues",
+                "source": "https://github.com/memran/marwa-debugbar/tree/v1.1.0"
+            },
+            "time": "2026-04-14T18:18:58+00:00"
+        },
+        {
+            "name": "memran/marwa-support",
+            "version": "v1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/memran/marwa-support.git",
+                "reference": "baca88f9f534d88ae6715f9a0316c2dc63e643af"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/memran/marwa-support/zipball/baca88f9f534d88ae6715f9a0316c2dc63e643af",
+                "reference": "baca88f9f534d88ae6715f9a0316c2dc63e643af",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "ext-openssl": "*",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.66",
+                "phpstan/phpstan": "^1.12",
+                "phpunit/phpunit": "^9.6.33"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Marwa\\Support\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mohammad Emran",
+                    "email": "memran.dhk@gmail.com"
+                }
+            ],
+            "description": "Framework-agnostic PHP support library with typed helpers for strings, arrays, files, objects, validation, and security primitives",
+            "keywords": [
+                "helpers",
+                "php",
+                "security",
+                "utilities",
+                "validation"
+            ],
+            "support": {
+                "issues": "https://github.com/memran/marwa-support/issues",
+                "source": "https://github.com/memran/marwa-support/tree/v1.3.0"
+            },
+            "time": "2026-04-13T23:02:51+00:00"
+        },
         {
             "name": "myclabs/deep-copy",
             "version": "1.13.4",
@@ -2581,7 +2708,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.1",
+        "php": "^8.2",
         "ext-json": "*",
         "ext-pdo": "*"
     },

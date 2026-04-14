@@ -576,13 +576,7 @@ class Builder
     {
         $pdo = $this->cm->getPdo($this->connection);
         $stmt = $pdo->prepare($sql);
-
-        $start = microtime(true);
         $ok = $stmt->execute($bindings);
-        $ms = (microtime(true) - $start) * 1000;
-
-        // Log to DebugPanel if present
-        $this->cm->getDebugPanel()?->addQuery($sql, $bindings, $ms);
 
         if (!$ok) {
             return false;
@@ -598,12 +592,7 @@ class Builder
     {
         $pdo = $this->cm->getPdo($this->connection);
         $stmt = $pdo->prepare($sql);
-
-        $start = microtime(true);
         $ok = $stmt->execute($bindings);
-        $ms = (microtime(true) - $start) * 1000;
-
-        $this->cm->getDebugPanel()?->addQuery($sql, $bindings, $ms);
 
         if (!$ok) {
             return 0;

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Marwa\DB\Connection;
 
 use Marwa\DB\Config\Config;
+use Marwa\DB\Logger\QueryLogger;
+use Marwa\DB\Support\DebugBarAdapter;
 use Marwa\DB\Support\DebugPanel;
 use Psr\Log\LoggerInterface;
 use Closure;
@@ -16,6 +18,8 @@ final class ConnectionManager implements ConnectionInterface
     private array $pool = [];
 
     private ?DebugPanel $debugPanel = null;
+    private ?QueryLogger $queryLogger = null;
+    private ?object $debugBar = null;
 
     public function __construct(
         private Config $config,
@@ -33,6 +37,31 @@ final class ConnectionManager implements ConnectionInterface
     public function getDebugPanel(): ?DebugPanel
     {
         return $this->debugPanel;
+    }
+
+    public function setDebugBar(?object $debugBar): void
+    {
+        $this->debugBar = DebugBarAdapter::supports($debugBar) ? $debugBar : null;
+    }
+
+    public function getDebugBar(): ?object
+    {
+        return $this->debugBar;
+    }
+
+    public function renderDebugBar(): string
+    {
+        return DebugBarAdapter::render($this->debugBar);
+    }
+
+    public function setQueryLogger(?QueryLogger $queryLogger): void
+    {
+        $this->queryLogger = $queryLogger;
+    }
+
+    public function getQueryLogger(): ?QueryLogger
+    {
+        return $this->queryLogger;
     }
 
     /**
@@ -94,7 +123,7 @@ final class ConnectionManager implements ConnectionInterface
 
         while (true) {
             try {
-                return $this->factory->makePdo($cfg);
+                return $this->factory->makePdo($cfg, $this->recordQuery(...), $name);
             } catch (\Throwable $e) {
                 $attempt++;
                 $this->logger?->warning("[DB] connect failed ({$name}) attempt {$attempt}: " . $e->getMessage());
@@ -131,5 +160,44 @@ final class ConnectionManager implements ConnectionInterface
     {
         $chosen = $this->lb->pick($replicas);
         return $this->getPdo($chosen);
+    }
+
+    public function recordQuery(
+        string $sql,
+        array $bindings,
+        float $timeMs,
+        string $connection,
+        ?string $error = null
+    ): void {
+        if (!$this->shouldRecordQuery($connection)) {
+            return;
+        }
+
+        $this->debugPanel?->addQuery($sql, $bindings, $timeMs, $connection, $error);
+        DebugBarAdapter::addQuery($this->debugBar, $sql, $bindings, $timeMs, $connection);
+        $this->resolveQueryLogger($connection)?->log($sql, $bindings, $timeMs, $connection, $error);
+    }
+
+    private function shouldRecordQuery(string $connection): bool
+    {
+        return $this->debugPanel !== null
+            || $this->debugBar !== null
+            || $this->queryLogger !== null
+            || $this->isDebug($connection);
+    }
+
+    private function resolveQueryLogger(string $connection): ?QueryLogger
+    {
+        if ($this->queryLogger !== null) {
+            return $this->queryLogger;
+        }
+
+        if (!$this->isDebug($connection)) {
+            return null;
+        }
+
+        $this->queryLogger = new QueryLogger($this->logger);
+
+        return $this->queryLogger;
     }
 }
