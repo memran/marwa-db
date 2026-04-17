@@ -206,6 +206,23 @@ Registers the shared manager used by the facade.
 
 Starts a fluent query against a table.
 
+### Transaction methods
+
+- `DB::connection(?string $name = null): ConnectionManager`
+- `DB::beginTransaction(string $conn = 'default'): void`
+- `DB::commit(string $conn = 'default'): void`
+- `DB::rollback(string $conn = 'default'): void`
+- `DB::transaction(callable $callback, string $conn = 'default'): mixed`
+
+Example:
+
+```php
+$result = DB::transaction(function () {
+    User::create(['name' => 'Alice']);
+    Order::create(['user_id' => 1, 'total' => 100]);
+});
+```
+
 ```php
 use Marwa\DB\Facades\DB;
 
@@ -236,6 +253,9 @@ Filtering and ordering:
 - `whereNotIn(string $column, array $values, string $boolean = 'and'): self`
 - `whereNull(string $column, string $boolean = 'and'): self`
 - `whereNotNull(string $column, string $boolean = 'and'): self`
+- `whereJsonContains(string $column, mixed $value): self`
+- `whereJsonLength(string $column, int $length): self`
+- `whereJsonValue(string $column, string $path, mixed $value): self`
 - `orderBy(string $column, string $direction = 'asc'): self`
 - `limit(int $n): self`
 - `offset(int $n): self`
@@ -293,6 +313,27 @@ Register the connection manager once:
 User::setConnectionManager($manager);
 ```
 
+### Model Events
+
+The Observable trait provides event hooks for model lifecycle:
+
+- `Model::onCreating(callable $callback): void`
+- `Model::onCreated(callable $callback): void`
+- `Model::onUpdating(callable $callback): void`
+- `Model::onUpdated(callable $callback): void`
+- `Model::onSaving(callable $callback): void`
+- `Model::onSaved(callable $callback): void`
+- `Model::onDeleting(callable $callback): void`
+- `Model::onDeleted(callable $callback): void`
+
+Example:
+
+```php
+User::onCreated(function ($user) {
+    Log::info("User created: {$user->id}");
+});
+```
+
 ### Common model API
 
 Setup:
@@ -308,6 +349,11 @@ Query entry points:
 - `all(): array`
 - `find(int|string $id): ?static`
 - `findOrFail(int|string $id): static`
+- `firstOrFail(): static`
+- `exists(): bool`
+- `count(string $col = '*'): int`
+- `chunk(int $size, callable $callback): void`
+- `chunkById(int $size, callable $callback, string $idCol = 'id'): void`
 
 Writes:
 
@@ -335,6 +381,27 @@ Scopes and soft-delete toggles:
 - `withoutGlobalScope(string $identifier): static`
 - `withTrashed(): static`
 - `onlyTrashed(): static`
+
+### Relation classes
+
+The package includes relation classes for eager loading:
+
+- `HasOne` - one-to-one relationship
+- `HasMany` - one-to-many relationship
+- `BelongsTo` - inverse of HasMany/HasOne
+- `BelongsToMany` - many-to-many via pivot table
+- `MorphTo` - polymorphic (morphTo)
+- `MorphMany` - polymorphic (morphMany)
+
+Example:
+
+```php
+// In User model
+public function posts(): HasMany
+{
+    return new HasMany(static::$cm, static::$connection, static::class, Post::class, 'user_id');
+}
+```
 
 Example:
 
@@ -364,6 +431,8 @@ Common methods:
 - `with(string ...$relations): self`
 - `get(): array`
 - `first(): ?Model`
+- `firstOrFail(): Model`
+- `exists(): bool`
 - `insert(array $data): int`
 - `update(array $data): int`
 - `delete(): int`
@@ -372,6 +441,8 @@ Common methods:
 - `min(string $col): mixed`
 - `sum(string $col): int|float|null`
 - `avg(string $col): ?float`
+- `chunk(int $size, callable $callback): void`
+- `chunkById(int $size, callable $callback, string $idCol = 'id'): void`
 - `getBaseBuilder(): Marwa\DB\Query\Builder`
 
 ## Schema Builder
@@ -449,12 +520,17 @@ Common schema methods on the table blueprint:
 - `index()`
 - `foreign()`
 
+Blueprint methods:
+
+- `comment(string $comment): self` - set table comment
+
 Column modifiers are available through `ColumnDefinition`, including:
 
 - `nullable()`
 - `default()`
 - `unsigned()`
 - `autoIncrement()`
+- `comment()` - column comment
 - `primary()`
 - `length()`
 - `comment()`
