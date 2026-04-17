@@ -6,6 +6,7 @@ namespace Marwa\DB\ORM\Traits;
 
 trait Timestamps
 {
+    /** @param array<mixed> $data */
     protected function touchTimestamps(array &$data): void
     {
         $now = date('Y-m-d H:i:s');

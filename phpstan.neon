@@ -1,5 +1,8 @@
+includes:
+  - phpstan-baseline.neon
+
 parameters:
-  level: 1
+  level: 6
   paths:
     - src
     - tests
@@ -7,3 +10,11 @@ parameters:
   parallel:
     maximumNumberOfProcesses: 1
   treatPhpDocTypesAsCertain: false
+  reportUnmatchedIgnoredErrors: false
+  ignoreErrors:
+    - identifier: missingType.iterableValue
+    - identifier: function.alreadyNarrowedType
+    - identifier: foreach.emptyArray
+    - identifier: nullsafe.neverNull
+    - identifier: argument.type
+    - identifier: return.type

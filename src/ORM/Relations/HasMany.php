@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Marwa\DB\ORM\Relations;
 
 use Marwa\DB\ORM\Model;
+use Marwa\DB\Connection\ConnectionManager;
 
 final class HasMany extends Relation
 {
     public function __construct(
-        $cm,
+        ConnectionManager $cm,
         string $connection,
         string $parentClass,
         string $related,
@@ -19,6 +20,7 @@ final class HasMany extends Relation
         parent::__construct($cm, $connection, $parentClass, $related);
     }
 
+    /** @param array<Model> $models */
     public function eagerLoad(array $models, string $name): void
     {
         if (!$models) return;

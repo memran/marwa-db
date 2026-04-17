@@ -8,6 +8,7 @@ use Marwa\Support\Collection as BaseCollection;
 
 final class Collection extends BaseCollection
 {
+    /** @param array<mixed> $items */
     public function __construct(array $items = [])
     {
         parent::__construct($items);

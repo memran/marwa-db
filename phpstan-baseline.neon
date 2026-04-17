@@ -1,0 +1,157 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Marwa\\DB\\Config\\Config\:\:get\(\) should return array\{driver\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>, \.\.\.\} but returns array\<int\|string, array\{driver\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>, \.\.\.\}\|int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Config/Config.php
+
+		-
+			message: '#^Method Marwa\\DB\\Config\\Config\:\:get\(\) should return array\{driver\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>, \.\.\.\} but returns array\<int\|string, array\{driver\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>, \.\.\.\}\|int\>\|bool\|int\|string\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Config/Config.php
+
+		-
+			message: '#^Method Marwa\\DB\\Config\\Config\:\:get\(\) should return array\{driver\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>, \.\.\.\} but returns array\{\}\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Config/Config.php
+
+		-
+			message: '#^Method Marwa\\DB\\Connection\\ConnectionManager\:\:recordQuery\(\) has parameter \$bindings with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Connection/ConnectionManager.php
+
+		-
+			message: '#^Method Marwa\\DB\\Connection\\InstrumentedPdo\:\:__construct\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Connection/InstrumentedPdo.php
+
+		-
+			message: '#^Method Marwa\\DB\\Connection\\InstrumentedPdoStatement\:\:execute\(\) has parameter \$params with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Connection/InstrumentedPdoStatement.php
+
+		-
+			message: '#^Method Marwa\\DB\\Logger\\QueryLogger\:\:all\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Logger/QueryLogger.php
+
+		-
+			message: '#^Property Marwa\\DB\\Logger\\QueryLogger\:\:\$entries type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Logger/QueryLogger.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Marwa\\DB\\Query\\Builder and ''whereNotNull'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/ORM/Model.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Marwa\\DB\\Query\\Builder and ''whereNull'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/ORM/Model.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: src/ORM/Model.php
+
+		-
+			message: '#^Method Marwa\\DB\\ORM\\Model\:\:fill\(\) has parameter \$attributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/ORM/Model.php
+
+		-
+			message: '#^Method Marwa\\DB\\ORM\\Model\:\:filterFillable\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/ORM/Model.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: src/ORM/Relations/BelongsToMany.php
+
+		-
+			message: '#^Method Marwa\\DB\\ORM\\Relations\\BelongsToMany\:\:__construct\(\) has parameter \$pivotColumns with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/ORM/Relations/BelongsToMany.php
+
+		-
+			message: '#^Method Marwa\\DB\\Query\\Builder\:\:insert\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Query/Builder.php
+
+		-
+			message: '#^Method Marwa\\DB\\Query\\Builder\:\:update\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Query/Builder.php
+
+		-
+			message: '#^Method Marwa\\DB\\Schema\\Blueprint\:\:foreign\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Schema/Blueprint.php
+
+		-
+			message: '#^Method Marwa\\DB\\Schema\\Blueprint\:\:foreign\(\) has parameter \$refColumns with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Schema/Blueprint.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Marwa\\DebugBar\\CollectorManager and ''register'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Support/DebugBarAdapter.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Marwa\\DebugBar\\DebugBar and ''collectors'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Support/DebugBarAdapter.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Marwa\\DebugBar\\DebugBar and ''setLogger'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Support/DebugBarAdapter.php
+
+		-
+			message: '#^Parameter \#1 \$connections of class Marwa\\DB\\Config\\Config constructor expects array\<string, array\{default\?\: string, connections\?\: array\<string, array\{driver\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>, \.\.\.\}\>\}\|array\{driver\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>, \.\.\.\}\>, array\{default\: ''sqlite'', connections\: array\{sqlite\: array\{driver\: ''sqlite'', database\: ''\:memory\:''\}\}\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Config/ConfigTest.php
+
+		-
+			message: '#^Parameter \#1 \$config of method Marwa\\DB\\Connection\\ConnectionFactory\:\:makePdo\(\) expects array\{driver\?\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>\}, array\{driver\: ''mysql'', host\: ''127\.0\.0\.1'', username\: ''root'', password\: ''''\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Connection/ConnectionFactoryTest.php
+
+		-
+			message: '#^Parameter \#1 \$config of method Marwa\\DB\\Connection\\ConnectionFactory\:\:makePdo\(\) expects array\{driver\?\: string, host\?\: string, port\?\: int, database\: string, username\?\: string, password\?\: string, charset\?\: string, options\?\: array\<int, int\>\}, array\{driver\: ''sqlsrv''\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Connection/ConnectionFactoryTest.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Marwa\\DB\\Tests\\ORM\\OrmUser\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: tests/ORM/QueryBuilderTest.php

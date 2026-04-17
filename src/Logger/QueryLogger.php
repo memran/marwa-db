@@ -13,6 +13,7 @@ final class QueryLogger
 
     public function __construct(private ?LoggerInterface $logger = null) {}
 
+    /** @param array<mixed> $bindings */
     public function log(string $sql, array $bindings, float $timeMs, string $connection, ?string $error = null): void
     {
         $this->entries[] = [

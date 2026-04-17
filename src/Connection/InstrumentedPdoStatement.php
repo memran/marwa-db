@@ -10,7 +10,7 @@ use Throwable;
 
 final class InstrumentedPdoStatement extends PDOStatement
 {
-    /** @var Closure(string, array, float, string, ?string): void */
+    /** @var Closure(string, array<mixed>, float, string, ?string): void */
     private Closure $recorder;
 
     private string $loggedQuery = '';
@@ -43,6 +43,7 @@ final class InstrumentedPdoStatement extends PDOStatement
         }
     }
 
+    /** @param array<mixed> $bindings */
     private function record(array $bindings, float $start, ?string $error = null): void
     {
         ($this->recorder)(

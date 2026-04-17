@@ -22,6 +22,7 @@ final class ConsoleKernel
     public function __construct(private ConnectionManager $manager, private string $migrationsPath) {}
 
 
+    /** @param array<string> $argv */
     public function run(array $argv): int
     {
 

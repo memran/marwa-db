@@ -11,13 +11,14 @@ use Throwable;
 
 final class InstrumentedPdo extends PDO
 {
-    /** @var Closure(string, array, float, string, ?string): void */
+    /** @var Closure(string, array<mixed>, float, string, ?string): void */
     private Closure $recorder;
 
     public function __construct(
         string $dsn,
         string $username = '',
         string $password = '',
+        /** @param array<int, int> $options */
         array $options = [],
         ?callable $recorder = null,
         private string $connectionName = 'default'
@@ -52,6 +53,7 @@ final class InstrumentedPdo extends PDO
         }
     }
 
+    /** @param array<int,int> $options */
     public function prepare(string $query, array $options = []): PDOStatement|false
     {
         $start = microtime(true);
@@ -96,6 +98,7 @@ final class InstrumentedPdo extends PDO
         }
     }
 
+    /** @param array<mixed> $bindings */
     private function record(string $sql, array $bindings, float $start, ?string $error = null): void
     {
         ($this->recorder)(

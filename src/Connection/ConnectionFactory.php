@@ -8,6 +8,9 @@ final class ConnectionFactory
 {
     private const ALLOWED_DRIVERS = ['mysql', 'pgsql', 'sqlite'];
 
+    /**
+     * @param array{driver?:string,host?:string,port?:int,database:string,username?:string,password?:string,charset?:string,options?:array<int,int>} $config
+     */
     public function makePdo(array $config, ?callable $recorder = null, string $connectionName = 'default'): \PDO
     {
         $driver = $config['driver'] ?? 'mysql';
@@ -39,6 +42,9 @@ final class ConnectionFactory
         return $pdo;
     }
 
+    /**
+     * @param array{driver?:string,host?:string,port?:int,database:string,username?:string,password?:string,charset?:string,options?:array<int,int>} $config
+     */
     private function mysqlDsn(array $config): string
     {
         $host = trim((string) ($config['host'] ?? '127.0.0.1'));
@@ -53,6 +59,9 @@ final class ConnectionFactory
         return "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
     }
 
+    /**
+     * @param array{driver?:string,host?:string,port?:int,database:string,username?:string,password?:string,charset?:string,options?:array<int,int>} $config
+     */
     private function pgsqlDsn(array $config): string
     {
         $host = trim((string) ($config['host'] ?? '127.0.0.1'));
@@ -67,6 +76,9 @@ final class ConnectionFactory
         return "pgsql:host={$host};port={$port};dbname={$dbname};options='--client_encoding={$charset}'";
     }
 
+    /**
+     * @param array{driver?:string,host?:string,port?:int,database:string,username?:string,password?:string,charset?:string,options?:array<int,int>} $config
+     */
     private function sqliteDsn(array $config): string
     {
         $database = trim((string) ($config['database'] ?? ''));

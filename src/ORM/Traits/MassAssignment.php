@@ -6,9 +6,12 @@ namespace Marwa\DB\ORM\Traits;
 
 trait MassAssignment
 {
+    /** @var array<string> */
     protected static array $fillable = [];
+    /** @var array<string> */
     protected static array $guarded  = ['*'];
 
+    /** @param array<mixed> $data */
     protected static function filterFillable(array $data): array
     {
         if (static::$fillable) {

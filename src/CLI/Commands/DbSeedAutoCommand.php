@@ -74,7 +74,10 @@ final class DbSeedAutoCommand extends Command
         return Command::SUCCESS;
     }
 
-    /** Normalize VALUE_IS_ARRAY options that might contain comma-separated lists */
+    /** Normalize VALUE_IS_ARRAY options that might contain comma-separated lists
+     * @param array<string> $in
+     * @return array<string>
+     */
     private function normalizeList(array $in): array
     {
         $out = [];

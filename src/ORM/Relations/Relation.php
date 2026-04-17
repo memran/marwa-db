@@ -18,7 +18,9 @@ abstract class Relation
         protected string $related
     ) {}
 
-    /** Batch-load relation for many parent models in one query and set on each model */
+    /** Batch-load relation for many parent models in one query and set on each model
+     * @param array<Model> $models
+     */
     abstract public function eagerLoad(array $models, string $name): void;
 
     protected function qb(string $table): BaseBuilder

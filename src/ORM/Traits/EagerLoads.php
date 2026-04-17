@@ -6,6 +6,7 @@ namespace Marwa\DB\ORM\Traits;
 
 trait EagerLoads
 {
+    /** @var array<string> */
     protected array $eager = [];
 
     public function load(string ...$relations): static

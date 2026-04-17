@@ -162,8 +162,9 @@ final class ConnectionManager implements ConnectionInterface
         return $this->getPdo($chosen);
     }
 
-    public function recordQuery(
+public function recordQuery(
         string $sql,
+        /** @param array<mixed> $bindings */
         array $bindings,
         float $timeMs,
         string $connection,

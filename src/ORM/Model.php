@@ -137,6 +137,7 @@ abstract class Model
         // Apply active global scopes
         $builder = (new \Marwa\DB\Query\Builder(static::$cm, static::$connection))->table(static::table());
         $scopes = static::$globalScopes[static::class] ?? [];
+        /** @var \Closure(\Marwa\DB\Query\Builder):void $scope */
         foreach ($scopes as $id => $scope) {
             if (!isset($model->disabledGlobalScopes[$id])) {
                 $scope($builder);
@@ -198,7 +199,9 @@ abstract class Model
 
     /** ===== Mutators ===== */
 
-    /** Mass create + persist (fillable + timestamps) */
+    /** Mass create + persist (fillable + timestamps)
+     * @param array<string,mixed> $attributes
+     */
     public static function create(array $attributes): static
     {
         $instance = new static();
@@ -519,6 +522,7 @@ public function fill(array $attributes): static
     /**
      * Dynamically handle calls to the builder (local scopes).
      */
+    /** @param array<mixed> $parameters */
     public function __call(string $method, array $parameters): mixed
     {
         $scope = 'scope' . ucfirst($method);
@@ -534,6 +538,7 @@ public function fill(array $attributes): static
     /**
      * For static calls like User::active().
      */
+    /** @param array<mixed> $parameters */
     public static function __callStatic(string $method, array $parameters): mixed
     {
         $instance = new static();

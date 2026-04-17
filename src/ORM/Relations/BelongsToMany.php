@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Marwa\DB\ORM\Relations;
 
 use Marwa\DB\ORM\Model;
+use Marwa\DB\Connection\ConnectionManager;
 
 /**
  * BelongsToMany: Many-to-Many via a pivot table.
@@ -28,7 +29,7 @@ final class BelongsToMany extends Relation
     private array $pivotColumns;
 
     public function __construct(
-        $cm,
+        ConnectionManager $cm,
         string $connection,
         string $parentClass,
         string $related,
@@ -37,6 +38,7 @@ final class BelongsToMany extends Relation
         private string $relatedPivotKey,   // references related key on pivot (e.g., role_id)
         private string $parentKey    = 'id',
         private string $relatedKey   = 'id',
+        /** @param string[] $pivotColumns */
         array $pivotColumns = []          // additional pivot columns to include
     ) {
         parent::__construct($cm, $connection, $parentClass, $related);
@@ -50,6 +52,7 @@ final class BelongsToMany extends Relation
      * 3) Load related rows for unique related IDs
      * 4) Attach related models to each parent (with 'pivot' relation containing pivot data)
      */
+    /** @param array<Model> $models */
     public function eagerLoad(array $models, string $name): void
     {
         if (!$models) return;
@@ -142,6 +145,8 @@ final class BelongsToMany extends Relation
     /**
      * Attach one or many related IDs to a given parent row (optionally with extra pivot data).
      * $ids can be: [1,2,3] or [1 => ['granted_at' => '...'], 2 => ['...']]
+     * @param array<int|string|array{...}>|int|string $ids
+     * @param array<mixed> $pivotData
      */
     public function attach(Model $parent, array|int|string $ids, array $pivotData = []): int
     {
@@ -171,6 +176,7 @@ final class BelongsToMany extends Relation
 
     /**
      * Detach one/many related IDs from a given parent. If $ids is null, detach all.
+     * @param array<int|string>|int|string|null $ids
      */
     public function detach(Model $parent, array|int|string|null $ids = null): int
     {
@@ -188,6 +194,8 @@ final class BelongsToMany extends Relation
     /**
      * Sync pivot records to exactly match given IDs (optionally id => pivotData).
      * Returns ['attached' => [], 'detached' => [], 'updated' => []]
+     * @param array<int|string|array{...}>|list<int|string> $ids
+     * @return array{attached:list<int|string>,detached:list<int|string>,updated:list<int|string>}
      */
     public function sync(Model $parent, array $ids): array
     {
