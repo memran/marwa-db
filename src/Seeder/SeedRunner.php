@@ -18,10 +18,14 @@ final class SeedRunner
         private string $connection = 'default',
         private string $seedPath = '',                     // e.g. getcwd().'/database/seeders'
         private string $seedNamespace = '',
+        /** @var array<int, string> */
         private array $exclude = ['DatabaseSeeder'],        // class short-names to skip
     ) {}
 
-    /** Run all discovered seeders in a single transaction (by default). */
+    /** Run all discovered seeders in a single transaction (by default).
+     * @param array<int, string> $only
+     * @param array<int, string> $except
+     */
     public function runAll(bool $wrapInTransaction = true, ?array $only = null, array $except = []): void
     {
         $classes = $this->discoverSeeders();

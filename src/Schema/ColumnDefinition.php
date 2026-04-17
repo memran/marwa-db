@@ -8,6 +8,7 @@ final class ColumnDefinition
 {
     private ?Blueprint $blueprint = null;
 
+    /** @param array<string, mixed> $attributes */
     public function __construct(
         public string $type,
         public string $name,

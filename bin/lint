@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+
+$it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__DIR__ . '/../src', RecursiveDirectoryIterator::SKIP_DOTS));
+$exitCode = 0;
+
+foreach ($it as $file) {
+    if ($file->getExtension() !== 'php') {
+        continue;
+    }
+
+    $pathname = $file->getPathname();
+    $output = [];
+    $return = 0;
+    exec("php -l " . escapeshellarg($pathname) . " 2>&1", $output, $return);
+
+    if ($return !== 0) {
+        echo implode("\n", $output) . "\n";
+        $exitCode = 1;
+    }
+}
+
+exit($exitCode);

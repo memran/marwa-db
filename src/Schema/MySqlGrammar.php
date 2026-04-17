@@ -125,6 +125,7 @@ final class MySqlGrammar implements Grammar
         return $sql;
     }
 
+    /** @param array{type:string,columns:string[],name?:string,options?:array{on:string,references:string[],onDelete?:string,onUpdate?:string}} $cmd */
     private function foreignSql(array $cmd): string
     {
         $name = $cmd['name'] ?? ('fk_' . uniqid());
@@ -145,11 +146,13 @@ final class MySqlGrammar implements Grammar
         return '`' . str_replace('`', '``', $id) . '`';
     }
 
+    /** @param array<string> $ids */
     private function wrapList(array $ids): string
     {
         return implode(', ', array_map(fn($c) => $this->wrap($c), $ids));
     }
 
+    /** @param array<string> $vals */
     private function quoteList(array $vals): string
     {
         return implode(', ', array_map(fn($v) => $this->literal($v), $vals));

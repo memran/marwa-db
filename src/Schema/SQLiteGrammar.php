@@ -143,6 +143,7 @@ final class SQLiteGrammar implements Grammar
         return $sql;
     }
 
+    /** @param array{type:string,columns:string[],name?:string,options?:array{on:string,references:string[],onDelete?:string,onUpdate?:string}} $cmd */
     private function foreignSql(array $cmd): string
     {
         $cols = $this->wrapList($cmd['columns']);
@@ -162,6 +163,7 @@ final class SQLiteGrammar implements Grammar
         return '"' . str_replace('"', '""', $id) . '"';
     }
 
+    /** @param array<string> $ids */
     private function wrapList(array $ids): string
     {
         return implode(', ', array_map(fn($c) => $this->wrap($c), $ids));

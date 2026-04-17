@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Marwa\DB\Support;
 
-final class Arr
+use Marwa\Support\Arr as BaseArr;
+
+final class Arr extends BaseArr
 {
-    public static function get(array $arr, string $key, mixed $default = null): mixed
-    {
-        return $arr[$key] ?? $default;
-    }
 }

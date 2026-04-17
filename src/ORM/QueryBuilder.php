@@ -41,6 +41,7 @@ final class QueryBuilder
         $this->qb->select(...$cols);
         return $this;
     }
+    /** @param array<int, mixed> $bindings */
     public function selectRaw(string $expr, array $bindings = []): self
     {
         $this->qb->selectRaw($expr, $bindings);
@@ -51,6 +52,7 @@ final class QueryBuilder
         $this->qb->where($col, $op, $val);
         return $this;
     }
+    /** @param array<int, mixed> $values */
     public function whereIn(string $col, array $values): self
     {
         $this->qb->whereIn($col, $values);
@@ -124,10 +126,12 @@ final class QueryBuilder
     }
 
     /** ---------- Writes (pass-through) ---------- */
+    /** @param array<string, mixed> $data */
     public function insert(array $data): int
     {
         return $this->qb->insert($data);
     }
+    /** @param array<string, mixed> $data */
     public function update(array $data): int
     {
         return $this->qb->update($data);
@@ -144,6 +148,7 @@ final class QueryBuilder
 
     /** ---------- Internals ---------- */
 
+    /** @param array<string, mixed>|object $row */
     private function hydrate(array|object $row): Model
     {
         /** @var class-string<Model> $cls */

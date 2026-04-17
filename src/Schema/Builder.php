@@ -64,6 +64,7 @@ final class Builder
         };
     }
 
+    /** @param array<int, string> $sqls */
     private function run(array $sqls): void
     {
         $pdo = $this->pdo();

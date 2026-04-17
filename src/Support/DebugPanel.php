@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Marwa\DB\Support;
 
+use Marwa\Support\Json;
+use Marwa\Support\Number;
+
 final class DebugPanel
 {
-    /**
-     * @var array<int, array{sql: string, bindings: array, time: string, connection: string, error: ?string}>
+/**
+     * @var array<int, array{sql: string, bindings: array<int, mixed>, time: string, connection: string, error: ?string}>
      */
     private array $queries = [];
 
+    /**
+     * @param array<int, mixed> $bindings
+     */
     public function addQuery(
         string $sql,
         array $bindings,
@@ -22,14 +28,14 @@ final class DebugPanel
         $this->queries[] = [
             'sql'      => $sql,
             'bindings' => $bindings,
-            'time'     => number_format($timeMs, 2) . ' ms',
+            'time'     => Number::format($timeMs, 2) . ' ms',
             'connection' => $connection,
             'error' => $error,
         ];
     }
 
-    /**
-     * @return array<int, array{sql: string, bindings: array, time: string, connection: string, error: ?string}>
+/**
+     * @return array<int, array{sql: string, bindings: array<int, mixed>, time: string, connection: string, error: ?string}>
      */
     public function all(): array
     {
@@ -57,7 +63,7 @@ final class DebugPanel
             echo '<td>' . ($i + 1) . '</td>';
             echo '<td>' . htmlspecialchars($q['connection'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
             echo '<td>' . htmlspecialchars($q['sql'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
-            echo '<td>' . htmlspecialchars((string) json_encode($q['bindings'], JSON_UNESCAPED_UNICODE), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars(Json::encode($q['bindings'], JSON_UNESCAPED_UNICODE), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
             echo '<td>' . $q['time'] . '</td>';
             echo '<td>' . htmlspecialchars((string) ($q['error'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
             echo '</tr>';

@@ -107,7 +107,7 @@ final class ConnectionManager implements ConnectionInterface
         return $this->getPdo($name);
     }
 
-    public function setAsGlobal()
+    public function setAsGlobal(): void
     {
         $GLOBALS['cm'] = $this;
     }

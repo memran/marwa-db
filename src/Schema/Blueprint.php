@@ -14,10 +14,10 @@ final class Blueprint
     /** @var ColumnDefinition[] */
     public array $columns = [];
 
-    /** @var array<int, array{type:string,columns:string[],name?:string,options?:array}> */
+    /** @var array<int, array{type:string,columns:string[],name?:string,options?:array<string, mixed>}> */
     public array $indexes = [];
 
-    /** @var array<int, array{type:string,columns:string[],name?:string,options?:array}> */
+    /** @var array<int, array{type:string,columns:string[],name?:string,options?:array<string, mixed>}> */
     public array $commands = []; // misc commands (primary/foreign in CREATE, etc.)
 
     public function __construct(public string $table) {}
@@ -154,11 +154,13 @@ final class Blueprint
         return $this->add(new ColumnDefinition('binary', $name));
     }
 
+    /** @param array<string> $allowed */
     public function enum(string $name, array $allowed): ColumnDefinition
     {
         return $this->add(new ColumnDefinition('enum', $name, ['allowed' => $allowed]));
     }
 
+    /** @param array<string> $allowed */
     public function set(string $name, array $allowed): ColumnDefinition
     {
         return $this->add(new ColumnDefinition('set', $name, ['allowed' => $allowed]));
@@ -171,21 +173,25 @@ final class Blueprint
 
     // ---- Index / Keys
 
+    /** @param array<string> $columns */
     public function primary(array|string $columns, ?string $name = null): void
     {
         $this->commands[] = ['type' => 'primary', 'columns' => (array)$columns, 'name' => $name];
     }
 
+    /** @param array<string> $columns */
     public function unique(array|string $columns, ?string $name = null): void
     {
         $this->indexes[] = ['type' => 'unique', 'columns' => (array)$columns, 'name' => $name];
     }
 
+    /** @param array<string> $columns */
     public function index(array|string $columns, ?string $name = null): void
     {
         $this->indexes[] = ['type' => 'index', 'columns' => (array)$columns, 'name' => $name];
     }
 
+    /** @param array<string> $columns @param array<string, mixed> $options @param array<string> $refColumns */
     public function foreign(array|string $columns, string $refTable, array|string $refColumns = 'id', ?string $name = null, array $options = []): void
     {
         $this->commands[] = [

@@ -37,6 +37,9 @@ final class DebugBarAdapter
         return $debugBar !== null && method_exists($debugBar, 'addQuery');
     }
 
+    /**
+     * @param array<int, mixed> $bindings
+     */
     public static function addQuery(
         ?object $debugBar,
         string $sql,

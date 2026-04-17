@@ -11,13 +11,15 @@ use Marwa\DB\ORM\Traits\SoftDeletes;
 use Marwa\DB\ORM\Traits\MassAssignment;
 use Marwa\DB\ORM\Traits\CastsAttributes;
 use Marwa\DB\ORM\Traits\HasRelationships;
+use Marwa\DB\ORM\Traits\EagerLoads;
+use Marwa\Support\Json;
 
 /** @phpstan-consistent-constructor */
 abstract class Model
 {
-    use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships;
+    use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships, EagerLoads;
 
-    /** @var array<class-string,Closure> */
+    /** @var array<class-string,\Closure> */
     protected static array $globalScopes = [];
     /** Table + key */
     protected static ?string $table = null; // if null, it will be inferred
@@ -32,7 +34,9 @@ abstract class Model
     protected static string $connection = 'default';
 
     /** State */
+    /** @var array<string,mixed> */
     protected array $attributes = [];
+    /** @var array<string,mixed> */
     protected array $original = [];
     protected bool $exists = false;
 
@@ -40,6 +44,9 @@ abstract class Model
     protected static bool $includeTrashed = false;
     protected static bool $onlyTrashed = false;
 
+    /**
+     * @param array<string,mixed> $attributes
+     */
     public function __construct(array $attributes = [], bool $exists = false)
     {
         $this->attributes = $attributes;
@@ -49,7 +56,7 @@ abstract class Model
         $this->boot();
     }
 
-    public function boot() {}
+    public function boot(): void {}
     /**
      * Get the fully-resolved table name for this model.
      * If not set, infer from the class name and cache it in static::$table.
@@ -103,7 +110,11 @@ abstract class Model
     public static function addGlobalScope(\Closure $scope, ?string $identifier = null): void
     {
         $id = $identifier ?? spl_object_hash($scope);
-        static::$globalScopes[static::class][$id] = $scope;
+        $cls = static::class;
+        if (!isset(static::$globalScopes[$cls])) {
+            static::$globalScopes[$cls] = [];
+        }
+        static::$globalScopes[$cls][$id] = $scope;
     }
 
     /**
@@ -125,7 +136,8 @@ abstract class Model
         $model = new static();
         // Apply active global scopes
         $builder = (new \Marwa\DB\Query\Builder(static::$cm, static::$connection))->table(static::table());
-        foreach (static::$globalScopes[static::class] ?? [] as $id => $scope) {
+        $scopes = static::$globalScopes[static::class] ?? [];
+        foreach ($scopes as $id => $scope) {
             if (!isset($model->disabledGlobalScopes[$id])) {
                 $scope($builder);
             }
@@ -190,6 +202,7 @@ abstract class Model
     public static function create(array $attributes): static
     {
         $instance = new static();
+        /** @var array<string,mixed> $data */
         $data = static::filterFillable($attributes);
 
         if (static::$timestamps) {
@@ -359,10 +372,12 @@ abstract class Model
 
     /** ===== Mass assignment / dirty tracking ===== */
 
-    public function fill(array $attributes): static
+public function fill(array $attributes): static
     {
+        /** @var array<string,mixed> $filtered */
         $filtered = static::filterFillable($attributes);
         $this->attributes = array_replace($this->attributes, $filtered);
+
         return $this;
     }
 
@@ -411,7 +426,7 @@ abstract class Model
 
     public function toJson(int $options = JSON_UNESCAPED_UNICODE): string
     {
-        return json_encode($this->toArray(), $options) ?: '{}';
+        return Json::encode($this->toArray(), $options);
     }
 
     /** Soft delete toggles for next fetch */
@@ -428,6 +443,7 @@ abstract class Model
     }
 
     /** Hydrate a row into a model instance marked as existing */
+    /** @param array<string,mixed>|object $row */
     protected static function hydrateRow(array|object $row): static
     {
         $data = is_array($row) ? $row : (array)$row;
@@ -503,7 +519,7 @@ abstract class Model
     /**
      * Dynamically handle calls to the builder (local scopes).
      */
-    public function __call(string $method, array $parameters)
+    public function __call(string $method, array $parameters): mixed
     {
         $scope = 'scope' . ucfirst($method);
 
@@ -518,7 +534,7 @@ abstract class Model
     /**
      * For static calls like User::active().
      */
-    public static function __callStatic(string $method, array $parameters)
+    public static function __callStatic(string $method, array $parameters): mixed
     {
         $instance = new static();
         $scope = 'scope' . ucfirst($method);

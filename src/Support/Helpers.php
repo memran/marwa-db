@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Marwa\DB\Support;
 
 use Marwa\DB\Connection\ConnectionManager;
+use Marwa\Support\Date;
 
 final class Helpers
 {
     public static function now(): string
     {
-        return date('Y-m-d H:i:s');
+        return Date::format('now');
     }
 }
 

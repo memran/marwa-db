@@ -35,7 +35,7 @@ class Builder
     /** @var array<int, string|Expression> */
     protected array $columns = ['*'];
 
-    /** @var array<int, array> */
+    /** @var list<array{type:string,column:string,operator?:string,value?:mixed,values?:array<int,mixed>,not?:bool,boolean:string,sql?:string}> */
     protected array $wheres = [];
 
     /** @var array<int, array{column:string, direction:string}> */
@@ -44,7 +44,7 @@ class Builder
     protected ?int $limit = null;
     protected ?int $offset = null;
 
-    /** Structured binding buckets to control order */
+    /** @var array<string, array<int, mixed>> */
     protected array $bindings = [
         'select' => [],
         'from'   => [],
@@ -77,6 +77,7 @@ class Builder
         return $this;
     }
 
+    /** @param array<int, mixed> $bindings */
     public function selectRaw(string $expression, array $bindings = []): self
     {
         // allow mixing raw expressions with normal columns
@@ -112,6 +113,7 @@ class Builder
         return $this->where($column, $operator, $value, 'or');
     }
 
+    /** @param array<int, mixed> $values */
     public function whereIn(string $column, array $values, bool $not = false, string $boolean = 'and'): self
     {
         $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
@@ -137,6 +139,7 @@ class Builder
         return $this;
     }
 
+    /** @param array<int, mixed> $values */
     public function whereNotIn(string $column, array $values, string $boolean = 'and'): self
     {
         return $this->whereIn($column, $values, true, $boolean);
@@ -189,10 +192,11 @@ class Builder
         return $this;
     }
 
-    /* ---------------------------
+/* ---------------------------
      * Fetch
-     * ------------------------- */
+     * -------------------------- */
 
+    /** @return array<int, array<string, mixed>> */
     public function get(int $fetchMode = PDO::FETCH_ASSOC): array
     {
         [$sql, $bindings] = $this->compileSelect();
@@ -201,6 +205,7 @@ class Builder
         return is_array($rows) ? $rows : [];
     }
 
+    /** @return array<string, mixed>|object|null */
     public function first(int $fetchMode = PDO::FETCH_ASSOC): array|object|null
     {
         $query = clone $this;
@@ -235,6 +240,7 @@ class Builder
      * Mutations
      * ------------------------- */
 
+    /** @param array<string, mixed> $data */
     /** @return int affected rows */
     public function insert(array $data): int
     {
@@ -256,6 +262,7 @@ class Builder
         return (int) $this->executeAffecting($sql, $bindings);
     }
 
+    /** @param array<string, mixed> $data */
     /** @return int affected rows */
     public function update(array $data): int
     {
@@ -305,28 +312,44 @@ class Builder
     public function count(string $column = '*'): int
     {
         $query = $this->aggregateQuery('COUNT(' . ($column === '*' ? '*' : $this->wrap($column)) . ') AS aggregate');
-        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
+        $rows = $query->get(PDO::FETCH_ASSOC);
+        $row = $rows[0] ?? null;
+        if ($row === null) {
+            return 0;
+        }
         return (int) (is_array($row) ? ($row['aggregate'] ?? 0) : ($row->aggregate ?? 0));
     }
 
     public function max(string $column): mixed
     {
         $query = $this->aggregateQuery('MAX(' . $this->wrap($column) . ') AS aggregate');
-        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
+        $rows = $query->get(PDO::FETCH_ASSOC);
+        $row = $rows[0] ?? null;
+        if ($row === null) {
+            return null;
+        }
         return is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
     }
 
     public function min(string $column): mixed
     {
         $query = $this->aggregateQuery('MIN(' . $this->wrap($column) . ') AS aggregate');
-        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
+        $rows = $query->get(PDO::FETCH_ASSOC);
+        $row = $rows[0] ?? null;
+        if ($row === null) {
+            return null;
+        }
         return is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
     }
 
     public function sum(string $column): int|float|null
     {
         $query = $this->aggregateQuery('SUM(' . $this->wrap($column) . ') AS aggregate');
-        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
+        $rows = $query->get(PDO::FETCH_ASSOC);
+        $row = $rows[0] ?? null;
+        if ($row === null) {
+            return null;
+        }
         $val = is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
         return $val === null ? null : (is_numeric($val) ? +$val : null);
     }
@@ -334,13 +357,17 @@ class Builder
     public function avg(string $column): ?float
     {
         $query = $this->aggregateQuery('AVG(' . $this->wrap($column) . ') AS aggregate');
-        $row = $query->get(PDO::FETCH_ASSOC)[0] ?? null;
+        $rows = $query->get(PDO::FETCH_ASSOC);
+        $row = $rows[0] ?? null;
+        if ($row === null) {
+            return null;
+        }
         $val = is_array($row) ? ($row['aggregate'] ?? null) : ($row->aggregate ?? null);
         return $val === null ? null : (float)$val;
     }
 
     /**
-     * @return array{data:array<int, array>|array<int, object>, total:int, per_page:int, current_page:int, last_page:int}
+     * @return array{data:array<int, array<string, mixed>>, total:int, per_page:int, current_page:int, last_page:int}
      */
     public function paginate(int $perPage = 15, int $page = 1, int $fetchMode = PDO::FETCH_ASSOC): array
     {
@@ -363,7 +390,7 @@ class Builder
      * SQL Generation Helpers
      * ------------------------- */
 
-    /** @return array{0:string,1:array} */
+    /** @return array{0:string,1:array<int, mixed>} */
     protected function compileSelect(): array
     {
         $this->ensureFrom();
@@ -391,7 +418,7 @@ class Builder
         return [trim(preg_replace('/\s+/', ' ', $sql) ?? $sql), $bindings];
     }
 
-    /** @return array{0:string,1:array} */
+    /** @return array{0:string,1:array<int, mixed>} */
     protected function compileWhere(): array
     {
         if (empty($this->wheres)) {
@@ -496,6 +523,7 @@ class Builder
      * Bindings / SQL output
      * ------------------------- */
 
+    /** @param array<int, mixed>|string|int|float|null $value */
     protected function addBinding(array|string|int|float|null $value, string $type = 'where'): void
     {
         if (!isset($this->bindings[$type])) {
@@ -536,6 +564,7 @@ class Builder
     }
 
     /** Return a merged binding list in execution order for the current SQL. */
+    /** @return array<int, mixed> */
     public function getBindings(): array
     {
         // For SELECTs we merge select + where; for updates/inserts we pass explicit bindings in execute
@@ -570,7 +599,8 @@ class Builder
 
     /**
      * Execute a SELECT statement.
-     * @return array<int, array>|false
+     * @param array<int, mixed> $bindings
+     * @return array<int, array<string, mixed>>|false
      */
     protected function execute(string $sql, array $bindings, int $fetchMode = PDO::FETCH_ASSOC): array|false
     {
@@ -586,6 +616,7 @@ class Builder
 
     /**
      * Execute INSERT/UPDATE/DELETE.
+     * @param array<int, mixed> $bindings
      * @return int affected rows
      */
     protected function executeAffecting(string $sql, array $bindings): int

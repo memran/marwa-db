@@ -6,16 +6,21 @@ namespace Marwa\DB\Connection;
 
 final class ConnectionFactory
 {
+    private const ALLOWED_DRIVERS = ['mysql', 'pgsql', 'sqlite'];
+
     public function makePdo(array $config, ?callable $recorder = null, string $connectionName = 'default'): \PDO
     {
         $driver = $config['driver'] ?? 'mysql';
         $options = $config['options'] ?? [];
 
+        if (!in_array($driver, self::ALLOWED_DRIVERS, true)) {
+            throw new \InvalidArgumentException("Unsupported driver: {$driver}");
+        }
+
         $dsn = match ($driver) {
             'mysql' => $this->mysqlDsn($config),
             'pgsql' => $this->pgsqlDsn($config),
             'sqlite' => $this->sqliteDsn($config),
-            default => throw new \InvalidArgumentException("Unsupported driver: {$driver}"),
         };
 
         $pdo = new InstrumentedPdo(
