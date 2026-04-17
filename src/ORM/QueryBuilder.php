@@ -79,6 +79,49 @@ final class QueryBuilder
     {
         return $this->qb->count($col);
     }
+
+    public function exists(): bool
+    {
+        return $this->qb->exists();
+    }
+
+    /** @param callable(int, array<Model>): void $callback */
+    public function chunk(int $size, callable $callback): void
+    {
+        $offset = 0;
+        do {
+            $rows = $this->qb->limit($size)->offset($offset)->get();
+            if (!$rows) break;
+
+            $models = [];
+            foreach ($rows as $row) {
+                $models[] = $this->hydrate($row);
+            }
+
+            $callback($offset, $models);
+            $offset += $size;
+        } while (count($rows) === $size);
+    }
+
+    /** @param callable(int, array<Model>): void $callback */
+    public function chunkById(int $size, callable $callback, string $idCol = 'id'): void
+    {
+        $lastId = 0;
+        do {
+            $rows = $this->qb->where($idCol, '>', $lastId)->orderBy($idCol, 'asc')->limit($size)->get();
+            if (!$rows) break;
+
+            $models = [];
+            foreach ($rows as $row) {
+                $arr = is_array($row) ? $row : (array)$row;
+                $lastId = (int)($arr[$idCol] ?? 0);
+                $models[] = $this->hydrate($row);
+            }
+
+            $callback($lastId, $models);
+        } while (count($rows) === $size);
+    }
+
     public function max(string $col): mixed
     {
         return $this->qb->max($col);
@@ -120,6 +163,19 @@ final class QueryBuilder
     {
         $row = $this->qb->first();
         if (!$row) return null;
+        $model = $this->hydrate($row);
+        $this->performEagerLoad([$model]);
+        return $model;
+    }
+
+    public function firstOrFail(): Model
+    {
+        $row = $this->qb->first();
+        if (!$row) {
+            throw new \Marwa\DB\Exceptions\ORMException(
+                "{$this->modelClass} record not found."
+            );
+        }
         $model = $this->hydrate($row);
         $this->performEagerLoad([$model]);
         return $model;

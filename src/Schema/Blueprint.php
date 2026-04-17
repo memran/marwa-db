@@ -10,6 +10,7 @@ final class Blueprint
     public const MODE_ALTER  = 'alter';
 
     private string $mode = self::MODE_CREATE;
+    private ?string $tableComment = null;
 
     /** @var ColumnDefinition[] */
     public array $columns = [];
@@ -29,6 +30,17 @@ final class Blueprint
     public function mode(): string
     {
         return $this->mode;
+    }
+
+    public function comment(string $comment): self
+    {
+        $this->tableComment = $comment;
+        return $this;
+    }
+
+    public function getTableComment(): ?string
+    {
+        return $this->tableComment;
     }
 
     // ---- Column factories (common “all types” you’ll want in tests)

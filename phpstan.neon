@@ -18,3 +18,4 @@ parameters:
     - identifier: nullsafe.neverNull
     - identifier: argument.type
     - identifier: return.type
+    - identifier: offsetAccess.notFound

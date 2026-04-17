@@ -157,6 +157,44 @@ class Builder
         return $this;
     }
 
+    public function whereJsonContains(string $column, mixed $value): self
+    {
+        $json = is_array($value) ? json_encode($value) : $value;
+        $this->wheres[] = [
+            'type'    => 'JsonContains',
+            'column'  => $column,
+            'value'  => $json,
+            'boolean' => 'and',
+        ];
+        $this->addBinding($json, 'where');
+        return $this;
+    }
+
+    public function whereJsonLength(string $column, int $length): self
+    {
+        $this->wheres[] = [
+            'type'    => 'JsonLength',
+            'column'  => $column,
+            'value'  => $length,
+            'boolean' => 'and',
+        ];
+        $this->addBinding($length, 'where');
+        return $this;
+    }
+
+    public function whereJsonValue(string $column, string $path, mixed $value): self
+    {
+        $this->wheres[] = [
+            'type'    => 'JsonValue',
+            'column'  => $column,
+            'path'   => $path,
+            'value'  => $value,
+            'boolean' => 'and',
+        ];
+        $this->addBinding($value, 'where');
+        return $this;
+    }
+
     public function whereNotNull(string $column, string $boolean = 'and'): self
     {
         $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
@@ -320,6 +358,17 @@ class Builder
         return (int) (is_array($row) ? ($row['aggregate'] ?? 0) : ($row->aggregate ?? 0));
     }
 
+    public function exists(): bool
+    {
+        $this->ensureFrom();
+        [$whereSql, $whereBindings] = $this->compileWhere();
+        $sql = 'SELECT 1 FROM ' . $this->wrap($this->from) . ($whereSql ? ' WHERE ' . $whereSql : '');
+        $pdo = $this->cm->getPdo($this->connection);
+        $qb = $pdo->prepare($sql . ' LIMIT 1');
+        $qb->execute($whereBindings);
+        return (bool) $qb->fetch();
+    }
+
     public function max(string $column): mixed
     {
         $query = $this->aggregateQuery('MAX(' . $this->wrap($column) . ') AS aggregate');
@@ -439,6 +488,16 @@ class Builder
                     break;
                 case 'Null':
                     $parts[] = $bool . sprintf('(%s IS %sNULL)', $this->wrap($w['column']), $w['not'] ? 'NOT ' : '');
+                    break;
+                case 'JsonContains':
+                    $parts[] = $bool . sprintf('(JSON_CONTAINS(%s, ?) = 1)', $this->wrap($w['column']));
+                    break;
+                case 'JsonLength':
+                    $parts[] = $bool . sprintf('(JSON_LENGTH(%s) = ?)', $this->wrap($w['column']));
+                    break;
+                case 'JsonValue':
+                    $path = is_string($w['path']) ? $w['path'] : '$';
+                    $parts[] = $bool . sprintf("(JSON_EXTRACT(%s, '%s') = ?)", $this->wrap($w['column']), $path);
                     break;
                 case 'Raw':
                     $parts[] = $bool . $w['sql'];

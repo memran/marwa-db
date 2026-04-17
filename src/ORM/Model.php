@@ -12,12 +12,13 @@ use Marwa\DB\ORM\Traits\MassAssignment;
 use Marwa\DB\ORM\Traits\CastsAttributes;
 use Marwa\DB\ORM\Traits\HasRelationships;
 use Marwa\DB\ORM\Traits\EagerLoads;
+use Marwa\DB\ORM\Traits\Observable;
 use Marwa\Support\Json;
 
 /** @phpstan-consistent-constructor */
 abstract class Model
 {
-    use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships, EagerLoads;
+    use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships, EagerLoads, Observable;
 
     /** @var array<class-string,\Closure> */
     protected static array $globalScopes = [];
@@ -208,18 +209,30 @@ abstract class Model
         /** @var array<string,mixed> $data */
         $data = static::filterFillable($attributes);
 
+        static::fireEvent('creating', $instance);
+
         if (static::$timestamps) {
             $instance->touchTimestamps($data);
         }
 
         static::baseQuery()->insert($data);
 
+        $model = $instance;
         $id = static::$cm?->getPdo(static::$connection)->lastInsertId();
         if ($id && is_numeric($id)) {
             $fresh = static::find((int)$id);
-            if ($fresh) return $fresh;
+            if ($fresh) {
+                $model = $fresh;
+            }
         }
-        return new static($data, true);
+
+        if ($model === $instance) {
+            $model = new static($data, true);
+        }
+
+        unset($instance);
+        static::fireEvent('created', $model);
+        return $model;
     }
 
     /** Insert or update this instance */
@@ -232,18 +245,22 @@ abstract class Model
 
         if ($this->exists) {
             if (!$data) return true;
+            static::fireEvent('updating', $this);
             $affected = static::baseQuery()
                 ->where(static::$primaryKey, '=', $this->getKey())
                 ->update($data);
             if ($affected > 0) {
                 $this->original = array_replace($this->original, $data);
                 $this->attributes = array_replace($this->attributes, $data);
+                static::fireEvent('updated', $this);
+                static::fireEvent('saved', $this);
                 return true;
             }
             return false;
         }
 
         // Insert path
+        static::fireEvent('saving', $this);
         $insertData = $this->attributes + $data;
         if (static::$timestamps) {
             $this->touchTimestamps($insertData);
@@ -257,6 +274,7 @@ abstract class Model
         }
         $this->original = $this->attributes;
         $this->exists = true;
+        static::fireEvent('saved', $this);
         return true;
     }
 
@@ -300,6 +318,8 @@ abstract class Model
     {
         if (!$this->exists) return false;
 
+        static::fireEvent('deleting', $this);
+
         if (static::$softDeletes) {
             $data = ['deleted_at' => Helpers::now()];
             $affected = static::baseQuery()
@@ -308,6 +328,7 @@ abstract class Model
             if ($affected > 0) {
                 $this->attributes['deleted_at'] = $data['deleted_at'];
                 $this->original['deleted_at']   = $data['deleted_at'];
+                static::fireEvent('deleted', $this);
                 return true;
             }
             return false;
@@ -319,6 +340,7 @@ abstract class Model
 
         if ($affected > 0) {
             $this->exists = false;
+            static::fireEvent('deleted', $this);
             return true;
         }
         return false;
@@ -328,6 +350,7 @@ abstract class Model
     public function forceDelete(): bool
     {
         if (!$this->exists) return false;
+        static::fireEvent('deleting', $this);
 
         $affected = static::baseQuery()
             ->where(static::$primaryKey, '=', $this->getKey())
