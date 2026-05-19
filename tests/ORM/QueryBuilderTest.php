@@ -29,7 +29,7 @@ final class QueryBuilderTest extends TestCase
         $result = OrmUser::query()->where('name', '=', 'Alice')->first();
 
         self::assertInstanceOf(OrmUser::class, $result);
-        self::assertSame('Alice', $result?->getAttribute('name'));
+        self::assertSame('Alice', $result->getAttribute('name'));
     }
 
     public function testOrmBuilderProxiesJoinRawGroupAndHavingMethods(): void
@@ -64,7 +64,7 @@ final class QueryBuilderTest extends TestCase
         $result = OrmUser::where('name', 'Alice')->first();
 
         self::assertInstanceOf(OrmUser::class, $result);
-        self::assertSame('Alice', $result?->getAttribute('name'));
+        self::assertSame('Alice', $result->getAttribute('name'));
     }
 
     public function testOrmBuilderProxiesDistinctWhereColumnAndRawGroupingMethods(): void

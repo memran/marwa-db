@@ -149,9 +149,3 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: tests/Connection/ConnectionFactoryTest.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type Marwa\\DB\\Tests\\ORM\\OrmUser\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: tests/ORM/QueryBuilderTest.php
