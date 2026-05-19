@@ -46,6 +46,9 @@
     ]
   },
   "config": {
+    "platform": {
+      "php": "8.2.31"
+    },
     "optimize-autoloader": true,
     "sort-packages": true
   }
