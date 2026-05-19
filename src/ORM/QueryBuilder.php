@@ -41,21 +41,131 @@ final class QueryBuilder
         $this->qb->select(...$cols);
         return $this;
     }
+    public function distinct(): self
+    {
+        $this->qb->distinct();
+        return $this;
+    }
     /** @param array<int, mixed> $bindings */
     public function selectRaw(string $expr, array $bindings = []): self
     {
         $this->qb->selectRaw($expr, $bindings);
         return $this;
     }
-    public function where(string $col, string $op, mixed $val): self
+    public function where(string $col, mixed $op, mixed $val = null): self
     {
+        if (func_num_args() === 2) {
+            $this->qb->where($col, $op);
+            return $this;
+        }
+
         $this->qb->where($col, $op, $val);
+        return $this;
+    }
+    public function orWhere(string $col, mixed $op, mixed $val = null): self
+    {
+        if (func_num_args() === 2) {
+            $this->qb->orWhere($col, $op);
+            return $this;
+        }
+
+        $this->qb->orWhere($col, $op, $val);
+        return $this;
+    }
+    public function whereColumn(string $first, mixed $operator, ?string $second = null): self
+    {
+        if (func_num_args() === 2) {
+            $this->qb->whereColumn($first, $operator);
+            return $this;
+        }
+
+        $this->qb->whereColumn($first, $operator, $second);
+        return $this;
+    }
+    public function orWhereColumn(string $first, mixed $operator, ?string $second = null): self
+    {
+        if (func_num_args() === 2) {
+            $this->qb->orWhereColumn($first, $operator);
+            return $this;
+        }
+
+        $this->qb->orWhereColumn($first, $operator, $second);
+        return $this;
+    }
+    /** @param array<int, mixed> $bindings */
+    public function whereRaw(string $sql, array $bindings = []): self
+    {
+        $this->qb->whereRaw($sql, $bindings);
+        return $this;
+    }
+    /** @param array<int, mixed> $bindings */
+    public function orWhereRaw(string $sql, array $bindings = []): self
+    {
+        $this->qb->orWhereRaw($sql, $bindings);
         return $this;
     }
     /** @param array<int, mixed> $values */
     public function whereIn(string $col, array $values): self
     {
         $this->qb->whereIn($col, $values);
+        return $this;
+    }
+    /** @param array<int, mixed> $values */
+    public function whereBetween(string $col, array $values): self
+    {
+        $this->qb->whereBetween($col, $values);
+        return $this;
+    }
+    /** @param array<int, mixed> $values */
+    public function whereNotBetween(string $col, array $values): self
+    {
+        $this->qb->whereNotBetween($col, $values);
+        return $this;
+    }
+    public function whereExists(callable|\Marwa\DB\Query\Builder $subquery): self
+    {
+        $this->qb->whereExists($subquery);
+        return $this;
+    }
+    public function whereNotExists(callable|\Marwa\DB\Query\Builder $subquery): self
+    {
+        $this->qb->whereNotExists($subquery);
+        return $this;
+    }
+    public function join(string $table, string $first, string $operator, string $second): self
+    {
+        $this->qb->join($table, $first, $operator, $second);
+        return $this;
+    }
+    public function leftJoin(string $table, string $first, string $operator, string $second): self
+    {
+        $this->qb->leftJoin($table, $first, $operator, $second);
+        return $this;
+    }
+    public function rightJoin(string $table, string $first, string $operator, string $second): self
+    {
+        $this->qb->rightJoin($table, $first, $operator, $second);
+        return $this;
+    }
+    public function groupBy(string ...$cols): self
+    {
+        $this->qb->groupBy(...$cols);
+        return $this;
+    }
+    public function groupByRaw(string $expression): self
+    {
+        $this->qb->groupByRaw($expression);
+        return $this;
+    }
+    public function having(string $col, string $op, mixed $val): self
+    {
+        $this->qb->having($col, $op, $val);
+        return $this;
+    }
+    /** @param array<int, mixed> $bindings */
+    public function havingRaw(string $sql, array $bindings = []): self
+    {
+        $this->qb->havingRaw($sql, $bindings);
         return $this;
     }
     public function orderBy(string $col, string $dir = 'asc'): self
@@ -73,6 +183,14 @@ final class QueryBuilder
         $this->qb->offset($n);
         return $this;
     }
+    /** @param callable(int, array<Model>): void $callback */
+    public function chunk(int $size, callable $callback): void
+    {
+        $this->qb->chunk($size, function (int $offset, array $rows) use ($callback): void {
+            $models = array_map(fn($row) => $this->hydrate($row), $rows);
+            $callback($offset, $models);
+        });
+    }
 
     /** Aggregates (DB-side) */
     public function count(string $col = '*'): int
@@ -86,40 +204,12 @@ final class QueryBuilder
     }
 
     /** @param callable(int, array<Model>): void $callback */
-    public function chunk(int $size, callable $callback): void
-    {
-        $offset = 0;
-        do {
-            $rows = $this->qb->limit($size)->offset($offset)->get();
-            if (!$rows) break;
-
-            $models = [];
-            foreach ($rows as $row) {
-                $models[] = $this->hydrate($row);
-            }
-
-            $callback($offset, $models);
-            $offset += $size;
-        } while (count($rows) === $size);
-    }
-
-    /** @param callable(int, array<Model>): void $callback */
     public function chunkById(int $size, callable $callback, string $idCol = 'id'): void
     {
-        $lastId = 0;
-        do {
-            $rows = $this->qb->where($idCol, '>', $lastId)->orderBy($idCol, 'asc')->limit($size)->get();
-            if (!$rows) break;
-
-            $models = [];
-            foreach ($rows as $row) {
-                $arr = is_array($row) ? $row : (array)$row;
-                $lastId = (int)($arr[$idCol] ?? 0);
-                $models[] = $this->hydrate($row);
-            }
-
-            $callback($lastId, $models);
-        } while (count($rows) === $size);
+        $this->qb->chunkById($size, function (int|string $lastId, array $rows) use ($callback): void {
+            $models = array_map(fn($row) => $this->hydrate($row), $rows);
+            $callback((int) $lastId, $models);
+        }, $idCol);
     }
 
     public function max(string $col): mixed
@@ -195,6 +285,19 @@ final class QueryBuilder
     public function delete(): int
     {
         return $this->qb->delete();
+    }
+    /** @param array<string, mixed> $data */
+    public function insertGetId(array $data): int|string
+    {
+        return $this->qb->insertGetId($data);
+    }
+    public function increment(string $column, int|float $amount = 1): int
+    {
+        return $this->qb->increment($column, $amount);
+    }
+    public function decrement(string $column, int|float $amount = 1): int
+    {
+        return $this->qb->decrement($column, $amount);
     }
 
     public function getBaseBuilder(): BaseBuilder

@@ -25,19 +25,23 @@ final class ConsoleKernel
     /** @param array<string> $argv */
     public function run(array $argv): int
     {
-
         $app = new Application('Marwa-DB CLI', '0.1.0');
-        $app->add(new MigrateCommand($this->manager, $this->migrationsPath));
-        $app->add(new MigrateRollbackCommand($this->manager, $this->migrationsPath));
-        $app->add(new MigrateRefreshCommand($this->manager, $this->migrationsPath));
-        $app->add(new MakeMigrationCommand($this->migrationsPath));
-        $app->add(new MigrateStatusCommand($this->manager, $this->migrationsPath));
-        $app->add(new MakeSeederCommand());
+
         $seedRunner = new SeedRunner(
             cm: $this->manager,
             logger: null,
         );
-        $app->add(new DbSeedAutoCommand($seedRunner));
+
+        $app->addCommands([
+            new MigrateCommand($this->manager, $this->migrationsPath),
+            new MigrateRollbackCommand($this->manager, $this->migrationsPath),
+            new MigrateRefreshCommand($this->manager, $this->migrationsPath),
+            new MakeMigrationCommand($this->migrationsPath),
+            new MigrateStatusCommand($this->manager, $this->migrationsPath),
+            new MakeSeederCommand(),
+            new DbSeedAutoCommand($seedRunner),
+        ]);
+
         return $app->run();
     }
 }

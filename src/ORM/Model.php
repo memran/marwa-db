@@ -99,8 +99,12 @@ abstract class Model
     }
 
     /** Convenience to start a chain quickly */
-    public static function where(string $col, string $op, mixed $val): \Marwa\DB\ORM\QueryBuilder
+    public static function where(string $col, mixed $op, mixed $val = null): \Marwa\DB\ORM\QueryBuilder
     {
+        if (func_num_args() === 2) {
+            return static::query()->where($col, $op);
+        }
+
         return static::query()->where($col, $op, $val);
     }
 

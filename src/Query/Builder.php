@@ -35,14 +35,24 @@ class Builder
     /** @var array<int, string|Expression> */
     protected array $columns = ['*'];
 
-    /** @var list<array{type:string,column:string,operator?:string,value?:mixed,values?:array<int,mixed>,not?:bool,boolean:string,sql?:string}> */
+    /** @var list<array{type:string,column?:string,operator?:string,value?:mixed,values?:array<int,mixed>,not?:bool,boolean:string,sql?:string,first?:string,second?:string,query?:self}> */
     protected array $wheres = [];
+
+    /** @var list<array{type:string,table:string,first:string,operator:string,second:string}> */
+    protected array $joins = [];
+
+    /** @var array<int, string|Expression> */
+    protected array $groups = [];
+
+    /** @var list<array{type:string,column?:string,operator?:string,value?:mixed,values?:array<int,mixed>,not?:bool,boolean:string,sql?:string,first?:string,second?:string,query?:self}> */
+    protected array $havings = [];
 
     /** @var array<int, array{column:string, direction:string}> */
     protected array $orders = [];
 
     protected ?int $limit = null;
     protected ?int $offset = null;
+    protected bool $distinct = false;
 
     /** @var array<string, array<int, mixed>> */
     protected array $bindings = [
@@ -77,6 +87,12 @@ class Builder
         return $this;
     }
 
+    public function distinct(): self
+    {
+        $this->distinct = true;
+        return $this;
+    }
+
     /** @param array<int, mixed> $bindings */
     public function selectRaw(string $expression, array $bindings = []): self
     {
@@ -93,10 +109,19 @@ class Builder
      * Where Clauses
      * ------------------------- */
 
-    public function where(string $column, string $operator, mixed $value, string $boolean = 'and'): self
+    public function where(string|callable $column, mixed $operator = null, mixed $value = null, string $boolean = 'and'): self
     {
+        if (is_callable($column)) {
+            return $this->whereNested($column, $boolean);
+        }
+
+        if (func_num_args() === 2) {
+            $value = $operator;
+            $operator = '=';
+        }
+
         $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
-        $operator = $this->normalizeOperator($operator);
+        $operator = $this->normalizeOperator((string) $operator);
         $this->wheres[] = [
             'type'    => 'Basic',
             'column'  => $column,
@@ -108,9 +133,73 @@ class Builder
         return $this;
     }
 
-    public function orWhere(string $column, string $operator, mixed $value): self
+    public function orWhere(string|callable $column, mixed $operator = null, mixed $value = null): self
     {
+        if (is_callable($column)) {
+            return $this->whereNested($column, 'or');
+        }
+
+        if (func_num_args() === 2) {
+            $this->wheres[] = [
+                'type' => 'Basic',
+                'column' => $column,
+                'operator' => '=',
+                'value' => $operator,
+                'boolean' => 'or',
+            ];
+            $this->addBinding($operator, 'where');
+            return $this;
+        }
+
         return $this->where($column, $operator, $value, 'or');
+    }
+
+    /** @param array<int, mixed> $bindings */
+    public function whereRaw(string $sql, array $bindings = [], string $boolean = 'and'): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $this->wheres[] = [
+            'type' => 'Raw',
+            'sql' => '(' . $sql . ')',
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($bindings, 'where');
+        return $this;
+    }
+
+    /** @param array<int, mixed> $bindings */
+    public function orWhereRaw(string $sql, array $bindings = []): self
+    {
+        return $this->whereRaw($sql, $bindings, 'or');
+    }
+
+    public function whereColumn(string $first, mixed $operator, ?string $second = null, string $boolean = 'and'): self
+    {
+        if (func_num_args() === 2) {
+            $second = (string) $operator;
+            $operator = '=';
+        }
+
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+
+        $this->wheres[] = [
+            'type' => 'Column',
+            'first' => $first,
+            'operator' => $this->normalizeOperator((string) $operator),
+            'second' => $second,
+            'boolean' => $boolean,
+        ];
+
+        return $this;
+    }
+
+    public function orWhereColumn(string $first, mixed $operator, ?string $second = null): self
+    {
+        if (func_num_args() === 2) {
+            return $this->whereColumn($first, $operator, null, 'or');
+        }
+
+        return $this->whereColumn($first, $operator, $second, 'or');
     }
 
     /** @param array<int, mixed> $values */
@@ -143,6 +232,33 @@ class Builder
     public function whereNotIn(string $column, array $values, string $boolean = 'and'): self
     {
         return $this->whereIn($column, $values, true, $boolean);
+    }
+
+    /** @param array<int, mixed> $values */
+    public function whereBetween(string $column, array $values, string $boolean = 'and', bool $not = false): self
+    {
+        if (count($values) !== 2) {
+            throw new \InvalidArgumentException('whereBetween expects exactly two values.');
+        }
+
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $values = array_values($values);
+
+        $this->wheres[] = [
+            'type' => 'Between',
+            'column' => $column,
+            'values' => $values,
+            'not' => $not,
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($values, 'where');
+        return $this;
+    }
+
+    /** @param array<int, mixed> $values */
+    public function whereNotBetween(string $column, array $values, string $boolean = 'and'): self
+    {
+        return $this->whereBetween($column, $values, $boolean, true);
     }
 
     public function whereNull(string $column, string $boolean = 'and'): self
@@ -204,6 +320,132 @@ class Builder
             'not'     => true,
             'boolean' => $boolean,
         ];
+        return $this;
+    }
+
+    public function whereExists(callable|self $subquery, string $boolean = 'and', bool $not = false): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        [$sql, $bindings] = $this->compileSubquery($subquery);
+
+        $this->wheres[] = [
+            'type' => 'Exists',
+            'sql' => $sql,
+            'not' => $not,
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($bindings, 'where');
+
+        return $this;
+    }
+
+    public function whereNotExists(callable|self $subquery, string $boolean = 'and'): self
+    {
+        return $this->whereExists($subquery, $boolean, true);
+    }
+
+    public function whereNested(callable $callback, string $boolean = 'and'): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $query = new self($this->cm, $this->connection);
+        $query->from = $this->from;
+        $callback($query);
+
+        if ($query->wheres === []) {
+            return $this;
+        }
+
+        $this->wheres[] = [
+            'type' => 'Nested',
+            'query' => $query,
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($query->bindings['where'], 'where');
+
+        return $this;
+    }
+
+    /* ---------------------------
+     * Join / Group / Having
+     * ------------------------- */
+
+    public function join(string $table, string $first, string $operator, string $second, string $type = 'inner'): self
+    {
+        $type = strtolower($type);
+        if (!in_array($type, ['inner', 'left', 'right'], true)) {
+            throw new \InvalidArgumentException("Unsupported join type [{$type}].");
+        }
+
+        $this->joins[] = [
+            'type' => $type,
+            'table' => $table,
+            'first' => $first,
+            'operator' => $this->normalizeOperator($operator),
+            'second' => $second,
+        ];
+
+        return $this;
+    }
+
+    public function leftJoin(string $table, string $first, string $operator, string $second): self
+    {
+        return $this->join($table, $first, $operator, $second, 'left');
+    }
+
+    public function rightJoin(string $table, string $first, string $operator, string $second): self
+    {
+        return $this->join($table, $first, $operator, $second, 'right');
+    }
+
+    public function groupBy(string ...$columns): self
+    {
+        foreach ($columns as $column) {
+            $this->groups[] = $column;
+        }
+
+        return $this;
+    }
+
+    public function groupByRaw(string $expression): self
+    {
+        $this->groups[] = new Expression($expression);
+
+        return $this;
+    }
+
+    public function having(string $column, string $operator, mixed $value, string $boolean = 'and'): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $operator = $this->normalizeOperator($operator);
+
+        $this->havings[] = [
+            'type' => 'Basic',
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($value, 'having');
+
+        return $this;
+    }
+
+    public function orHaving(string $column, string $operator, mixed $value): self
+    {
+        return $this->having($column, $operator, $value, 'or');
+    }
+
+    /** @param array<int, mixed> $bindings */
+    public function havingRaw(string $sql, array $bindings = [], string $boolean = 'and'): self
+    {
+        $boolean = strtolower($boolean) === 'or' ? 'or' : 'and';
+        $this->havings[] = [
+            'type' => 'Raw',
+            'sql' => '(' . $sql . ')',
+            'boolean' => $boolean,
+        ];
+        $this->addBinding($bindings, 'having');
+
         return $this;
     }
 
@@ -274,6 +516,54 @@ class Builder
         return new Collection($out);
     }
 
+    /** @param callable(int, array<int, array<string, mixed>>): void $callback */
+    public function chunk(int $size, callable $callback, int $fetchMode = PDO::FETCH_ASSOC): void
+    {
+        $size = max(1, $size);
+        $offset = $this->offset ?? 0;
+
+        do {
+            $query = clone $this;
+            $rows = $query->limit($size)->offset($offset)->get($fetchMode);
+
+            if ($rows === []) {
+                break;
+            }
+
+            $callback($offset, $rows);
+            $offset += $size;
+        } while (count($rows) === $size);
+    }
+
+    /** @param callable(int|string, array<int, array<string, mixed>>): void $callback */
+    public function chunkById(int $size, callable $callback, string $idCol = 'id', int $fetchMode = PDO::FETCH_ASSOC): void
+    {
+        $size = max(1, $size);
+        $lastId = null;
+
+        do {
+            $query = clone $this;
+            if ($lastId !== null) {
+                $query->where($idCol, '>', $lastId);
+            }
+
+            $rows = $query->orderBy($idCol, 'asc')->limit($size)->get($fetchMode);
+
+            if ($rows === []) {
+                break;
+            }
+
+            $lastRow = $rows[array_key_last($rows)];
+            $lastId = is_array($lastRow) ? ($lastRow[$idCol] ?? null) : ($lastRow->$idCol ?? null);
+
+            if ($lastId === null) {
+                break;
+            }
+
+            $callback($lastId, $rows);
+        } while (count($rows) === $size);
+    }
+
     /* ---------------------------
      * Mutations
      * ------------------------- */
@@ -298,6 +588,14 @@ class Builder
         $bindings = array_values($data);
 
         return (int) $this->executeAffecting($sql, $bindings);
+    }
+
+    /** @param array<string, mixed> $data */
+    public function insertGetId(array $data): int|string
+    {
+        $this->insert($data);
+
+        return $this->cm->getPdo($this->connection)->lastInsertId();
     }
 
     /** @param array<string, mixed> $data */
@@ -343,6 +641,16 @@ class Builder
         return (int) $this->executeAffecting($sql, $whereBindings);
     }
 
+    public function increment(string $column, int|float $amount = 1): int
+    {
+        return $this->updateCounter($column, $amount, '+');
+    }
+
+    public function decrement(string $column, int|float $amount = 1): int
+    {
+        return $this->updateCounter($column, $amount, '-');
+    }
+
     /* ---------------------------
      * Aggregates
      * ------------------------- */
@@ -360,13 +668,19 @@ class Builder
 
     public function exists(): bool
     {
-        $this->ensureFrom();
-        [$whereSql, $whereBindings] = $this->compileWhere();
-        $sql = 'SELECT 1 FROM ' . $this->wrap($this->from) . ($whereSql ? ' WHERE ' . $whereSql : '');
+        $query = clone $this;
+        $query->columns = [new Expression('1')];
+        $query->orders = [];
+        $query->limit = 1;
+        $query->offset = null;
+
+        [$sql, $bindings] = $query->compileSelect();
+
         $pdo = $this->cm->getPdo($this->connection);
-        $qb = $pdo->prepare($sql . ' LIMIT 1');
-        $qb->execute($whereBindings);
-        return (bool) $qb->fetch();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($bindings);
+
+        return (bool) $stmt->fetch();
     }
 
     public function max(string $column): mixed
@@ -446,22 +760,31 @@ class Builder
 
         $selects = $this->columnsToSql();
 
+        $joinSql = $this->compileJoins();
         [$whereSql, $whereBindings] = $this->compileWhere();
+        $groupSql = $this->compileGroups();
+        [$havingSql, $havingBindings] = $this->compileHaving();
         $orderSql = $this->compileOrder();
         $limitSql = $this->compileLimit();
 
         $sql = sprintf(
-            'SELECT %s FROM %s %s %s %s',
+            'SELECT %s%s FROM %s %s %s %s %s %s %s',
+            $this->distinct ? 'DISTINCT ' : '',
             $selects,
-            $this->wrap($this->from),
+            $this->wrapTable($this->from),
+            $joinSql,
             $whereSql,
+            $groupSql,
+            $havingSql,
             $orderSql,
             $limitSql
         );
 
         $bindings = array_merge(
             $this->bindings['select'],
-            $whereBindings
+            $this->bindings['join'],
+            $whereBindings,
+            $havingBindings
         );
 
         return [trim(preg_replace('/\s+/', ' ', $sql) ?? $sql), $bindings];
@@ -470,41 +793,48 @@ class Builder
     /** @return array{0:string,1:array<int, mixed>} */
     protected function compileWhere(): array
     {
-        if (empty($this->wheres)) {
-            return ['', []];
+        return $this->compileConditions($this->wheres, 'WHERE', 'where');
+    }
+
+    protected function compileJoins(): string
+    {
+        if (empty($this->joins)) {
+            return '';
         }
-        $parts = [];
-        foreach ($this->wheres as $i => $w) {
-            $bool = $i === 0 ? '' : ' ' . strtoupper($w['boolean']) . ' ';
-            switch ($w['type']) {
-                case 'Basic':
-                    $parts[] = $bool . sprintf('(%s %s ?)', $this->wrap($w['column']), $w['operator']);
-                    break;
-                case 'In':
-                    $count = count($w['values']);
-                    $ph = implode(', ', array_fill(0, $count, '?'));
-                    $not = $w['not'] ? ' NOT' : '';
-                    $parts[] = $bool . sprintf('(%s%s IN (%s))', $this->wrap($w['column']), $not, $ph);
-                    break;
-                case 'Null':
-                    $parts[] = $bool . sprintf('(%s IS %sNULL)', $this->wrap($w['column']), $w['not'] ? 'NOT ' : '');
-                    break;
-                case 'JsonContains':
-                    $parts[] = $bool . sprintf('(JSON_CONTAINS(%s, ?) = 1)', $this->wrap($w['column']));
-                    break;
-                case 'JsonLength':
-                    $parts[] = $bool . sprintf('(JSON_LENGTH(%s) = ?)', $this->wrap($w['column']));
-                    break;
-                case 'JsonValue':
-                    $path = is_string($w['path']) ? $w['path'] : '$';
-                    $parts[] = $bool . sprintf("(JSON_EXTRACT(%s, '%s') = ?)", $this->wrap($w['column']), $path);
-                    break;
-                case 'Raw':
-                    $parts[] = $bool . $w['sql'];
-                    break;
-            }
+
+        $parts = array_map(function (array $join): string {
+            $type = $join['type'] === 'inner' ? 'INNER JOIN' : strtoupper($join['type']) . ' JOIN';
+
+            return sprintf(
+                '%s %s ON %s %s %s',
+                $type,
+                $this->wrapTable($join['table']),
+                $this->wrap($join['first']),
+                $join['operator'],
+                $this->wrap($join['second'])
+            );
+        }, $this->joins);
+
+        return implode(' ', $parts);
+    }
+
+    protected function compileGroups(): string
+    {
+        if (empty($this->groups)) {
+            return '';
         }
-        return ['WHERE ' . implode('', $parts), $this->bindings['where']];
+
+        $parts = array_map(function (string|Expression $group): string {
+            return $group instanceof Expression ? (string) $group : $this->wrap($group);
+        }, $this->groups);
+
+        return 'GROUP BY ' . implode(', ', $parts);
+    }
+
+    /** @return array{0:string,1:array<int, mixed>} */
+    protected function compileHaving(): array
+    {
+        return $this->compileConditions($this->havings, 'HAVING', 'having');
     }
 
     protected function compileOrder(): string
@@ -541,7 +871,7 @@ class Builder
             if ($col instanceof Expression) {
                 $out[] = (string)$col;
             } else {
-                $out[] = $col === '*' ? '*' : $this->wrap($col);
+                $out[] = $col === '*' ? '*' : $this->wrapColumn($col);
             }
         }
         return implode(', ', $out);
@@ -563,6 +893,24 @@ class Builder
             return $p === '*' ? '*' : $this->quoteIdentifierPart($p, $quote);
         }, $parts);
         return implode('.', $parts);
+    }
+
+    protected function wrapColumn(string $identifier): string
+    {
+        if (preg_match('/^(.+)\s+as\s+(.+)$/i', $identifier, $matches) === 1) {
+            return $this->wrap(trim($matches[1])) . ' AS ' . $this->wrap(trim($matches[2]));
+        }
+
+        return $this->wrap($identifier);
+    }
+
+    protected function wrapTable(string $table): string
+    {
+        if (preg_match('/^(.+)\s+as\s+(.+)$/i', $table, $matches) === 1) {
+            return $this->wrap(trim($matches[1])) . ' AS ' . $this->wrap(trim($matches[2]));
+        }
+
+        return $this->wrap($table);
     }
 
     private function identifierQuote(): string
@@ -615,6 +963,7 @@ class Builder
     {
         $query = clone $this;
         $query->columns = [new Expression($expression)];
+        $query->distinct = false;
         $query->orders = [];
         $query->limit = null;
         $query->offset = null;
@@ -629,7 +978,9 @@ class Builder
         // For SELECTs we merge select + where; for updates/inserts we pass explicit bindings in execute
         return array_merge(
             $this->bindings['select'],
-            $this->bindings['where']
+            $this->bindings['join'],
+            $this->bindings['where'],
+            $this->bindings['having']
         );
     }
 
@@ -644,9 +995,13 @@ class Builder
         $this->from = null;
         $this->columns = ['*'];
         $this->wheres = [];
+        $this->joins = [];
+        $this->groups = [];
+        $this->havings = [];
         $this->orders = [];
         $this->limit = null;
         $this->offset = null;
+        $this->distinct = false;
         foreach ($this->bindings as $k => $_) {
             $this->bindings[$k] = [];
         }
@@ -688,5 +1043,96 @@ class Builder
             return 0;
         }
         return $stmt->rowCount();
+    }
+
+    /**
+     * @param list<array{type:string,column?:string,operator?:string,value?:mixed,values?:array<int,mixed>,not?:bool,boolean:string,sql?:string,first?:string,second?:string,query?:self}> $clauses
+     * @return array{0:string,1:array<int, mixed>}
+     */
+    protected function compileConditions(array $clauses, string $keyword, string $bindingType): array
+    {
+        if (empty($clauses)) {
+            return ['', []];
+        }
+
+        $parts = [];
+
+        foreach ($clauses as $i => $clause) {
+            $bool = $i === 0 ? '' : ' ' . strtoupper($clause['boolean']) . ' ';
+
+            switch ($clause['type']) {
+                case 'Basic':
+                    $parts[] = $bool . sprintf('(%s %s ?)', $this->wrap($clause['column']), $clause['operator']);
+                    break;
+                case 'Column':
+                    $parts[] = $bool . sprintf('(%s %s %s)', $this->wrap($clause['first']), $clause['operator'], $this->wrap($clause['second']));
+                    break;
+                case 'In':
+                    $count = count($clause['values']);
+                    $ph = implode(', ', array_fill(0, $count, '?'));
+                    $not = $clause['not'] ? ' NOT' : '';
+                    $parts[] = $bool . sprintf('(%s%s IN (%s))', $this->wrap($clause['column']), $not, $ph);
+                    break;
+                case 'Between':
+                    $not = $clause['not'] ? ' NOT' : '';
+                    $parts[] = $bool . sprintf('(%s%s BETWEEN ? AND ?)', $this->wrap($clause['column']), $not);
+                    break;
+                case 'Null':
+                    $parts[] = $bool . sprintf('(%s IS %sNULL)', $this->wrap($clause['column']), $clause['not'] ? 'NOT ' : '');
+                    break;
+                case 'JsonContains':
+                    $parts[] = $bool . sprintf('(JSON_CONTAINS(%s, ?) = 1)', $this->wrap($clause['column']));
+                    break;
+                case 'JsonLength':
+                    $parts[] = $bool . sprintf('(JSON_LENGTH(%s) = ?)', $this->wrap($clause['column']));
+                    break;
+                case 'JsonValue':
+                    $path = is_string($clause['path'] ?? null) ? $clause['path'] : '$';
+                    $parts[] = $bool . sprintf("(JSON_EXTRACT(%s, '%s') = ?)", $this->wrap($clause['column']), $path);
+                    break;
+                case 'Raw':
+                    $parts[] = $bool . $clause['sql'];
+                    break;
+                case 'Exists':
+                    $parts[] = $bool . '(' . ($clause['not'] ? 'NOT EXISTS' : 'EXISTS') . ' (' . $clause['sql'] . '))';
+                    break;
+                case 'Nested':
+                    [$nestedSql] = $clause['query']->compileConditions($clause['query']->wheres, 'WHERE', 'where');
+                    $nestedSql = preg_replace('/^WHERE\s+/i', '', $nestedSql) ?? $nestedSql;
+                    $parts[] = $bool . '(' . $nestedSql . ')';
+                    break;
+            }
+        }
+
+        return [$keyword . ' ' . implode('', $parts), $this->bindings[$bindingType]];
+    }
+
+    /** @return array{0:string,1:array<int, mixed>} */
+    protected function compileSubquery(callable|self $subquery): array
+    {
+        $query = $subquery instanceof self ? clone $subquery : new self($this->cm, $this->connection);
+
+        if (is_callable($subquery)) {
+            $subquery($query);
+        }
+
+        return $query->compileSelect();
+    }
+
+    protected function updateCounter(string $column, int|float $amount, string $operator): int
+    {
+        $this->ensureFrom();
+
+        [$whereSql, $whereBindings] = $this->compileWhere();
+        $sql = sprintf(
+            'UPDATE %s SET %s = %s %s ? %s',
+            $this->wrap($this->from),
+            $this->wrap($column),
+            $this->wrap($column),
+            $operator,
+            $whereSql
+        );
+
+        return (int) $this->executeAffecting($sql, array_merge([$amount], $whereBindings));
     }
 }
