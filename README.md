@@ -317,14 +317,18 @@ User::setConnectionManager($manager);
 
 The Observable trait provides event hooks for model lifecycle:
 
-- `Model::onCreating(callable $callback): void`
-- `Model::onCreated(callable $callback): void`
-- `Model::onUpdating(callable $callback): void`
-- `Model::onUpdated(callable $callback): void`
-- `Model::onSaving(callable $callback): void`
-- `Model::onSaved(callable $callback): void`
-- `Model::onDeleting(callable $callback): void`
-- `Model::onDeleted(callable $callback): void`
+- `Model::creating(callable $callback): void`
+- `Model::created(callable $callback): void`
+- `Model::updating(callable $callback): void`
+- `Model::updated(callable $callback): void`
+- `Model::saving(callable $callback): void`
+- `Model::saved(callable $callback): void`
+- `Model::deleting(callable $callback): void`
+- `Model::deleted(callable $callback): void`
+- `Model::restoring(callable $callback): void`
+- `Model::restored(callable $callback): void`
+
+Each method also has an `on`-prefixed alias (e.g. `onCreating`, `onCreated`, etc.).
 
 Example:
 
@@ -345,13 +349,21 @@ Setup:
 Query entry points:
 
 - `query(): Marwa\DB\ORM\QueryBuilder`
-- `where(string $col, string $op, mixed $val): Marwa\DB\ORM\QueryBuilder`
+- `where(string $col, mixed $op, mixed $val = null): Marwa\DB\ORM\QueryBuilder`
+- `whereIn(string $col, array $values): Marwa\DB\ORM\QueryBuilder`
+- `whereNull(string $col): Marwa\DB\ORM\QueryBuilder`
+- `whereNotNull(string $col): Marwa\DB\ORM\QueryBuilder`
 - `all(): array`
 - `find(int|string $id): ?static`
 - `findOrFail(int|string $id): static`
-- `firstOrFail(): static`
+- `first(): ?static`
+- `firstWhere(string $col, mixed $op, mixed $val = null): ?static`
+- `firstOrFail(): Model`
+- `updateOrCreate(array $attributes, array $values = []): static`
+- `firstOrCreate(array $attributes, array $values = []): static`
 - `exists(): bool`
 - `count(string $col = '*'): int`
+- `paginate(int $perPage = 15, int $page = 1): array`
 - `chunk(int $size, callable $callback): void`
 - `chunkById(int $size, callable $callback, string $idCol = 'id'): void`
 
@@ -359,28 +371,62 @@ Writes:
 
 - `create(array $attributes): static`
 - `save(): bool`
-- `delete(): bool`
-- `forceDelete(): bool`
-- `restore(): bool`
 - `destroy(int|array $ids): int`
+- `touch(?string $attribute = null): bool`
+
+Timestamps:
+
+- `usesTimestamps(): bool`
+- `createdAt(): ?string`
+- `updatedAt(): ?string`
+
+State and change tracking:
+
+- `isDirty(?string $attribute = null): bool`
+- `isClean(?string $attribute = null): bool`
+- `syncOriginal(): static`
 - `refresh(): static`
+- `fresh(): ?static`
 
 Attribute and serialization helpers:
 
 - `fill(array $attributes): static`
+- `forceFill(array $attributes): static`
+- `only(array $keys): array`
+- `except(array $keys): array`
 - `getDirty(): array`
 - `getKey(): int|string|null`
 - `getKeyName(): string`
 - `getAttribute(string $key): mixed`
+- `setAttribute(string $key, mixed $value): static`
+- `hasAttribute(string $key): bool`
+- `append(array $attributes): static`
+- `setHidden(array $hidden): static`
+- `setVisible(array $visible): static`
+- `replicate(?array $except = null): static`
+
+Type casting:
+
+- `casts(): array`
+- `castIn(string $key, mixed $value): mixed`
+- `castOut(string $key, mixed $value): mixed`
+- `mergeCasts(array $casts): static`
 - `toArray(): array`
 - `toJson(int $options = JSON_UNESCAPED_UNICODE): string`
 
-Scopes and soft-delete toggles:
+Soft deletes:
+
+- `delete(): bool`
+- `forceDelete(): bool`
+- `restore(): bool`
+- `trashed(): bool`
+- `withTrashed(): static`
+- `onlyTrashed(): static`
+
+Scopes:
 
 - `addGlobalScope(Closure $scope, ?string $identifier = null): void`
 - `withoutGlobalScope(string $identifier): static`
-- `withTrashed(): static`
-- `onlyTrashed(): static`
 
 ### Relation classes
 

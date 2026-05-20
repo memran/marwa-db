@@ -5,30 +5,27 @@ declare(strict_types=1);
 namespace Marwa\DB\ORM;
 
 use Marwa\DB\Connection\ConnectionManager;
-use Marwa\DB\Support\Helpers;
 use Marwa\DB\ORM\Traits\Timestamps;
 use Marwa\DB\ORM\Traits\SoftDeletes;
 use Marwa\DB\ORM\Traits\MassAssignment;
 use Marwa\DB\ORM\Traits\CastsAttributes;
 use Marwa\DB\ORM\Traits\HasRelationships;
 use Marwa\DB\ORM\Traits\EagerLoads;
+use Marwa\DB\ORM\Traits\HasAttributes;
+use Marwa\DB\ORM\Traits\HasQuery;
+use Marwa\DB\ORM\Traits\HasState;
 use Marwa\DB\ORM\Traits\Observable;
-use Marwa\Support\Json;
 
 /** @phpstan-consistent-constructor */
 abstract class Model
 {
-    use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasRelationships, EagerLoads, Observable;
+    use Timestamps, SoftDeletes, MassAssignment, CastsAttributes, HasAttributes, HasRelationships, EagerLoads, Observable, HasQuery, HasState;
 
     /** @var array<class-string,\Closure> */
     protected static array $globalScopes = [];
     /** Table + key */
     protected static ?string $table = null; // if null, it will be inferred
     protected static string $primaryKey = 'id';
-
-    /** Behaviors */
-    protected static bool $timestamps = true;
-    protected static bool $softDeletes = false;
 
     /** Connection (shared by all models) */
     protected static ?ConnectionManager $cm = null;
@@ -40,10 +37,6 @@ abstract class Model
     /** @var array<string,mixed> */
     protected array $original = [];
     protected bool $exists = false;
-
-    /** Soft delete flags for next query */
-    protected static bool $includeTrashed = false;
-    protected static bool $onlyTrashed = false;
 
     /**
      * @param array<string,mixed> $attributes
@@ -96,16 +89,6 @@ abstract class Model
         /** @var class-string<static> $cls */
         $cls = static::class;
         return new \Marwa\DB\ORM\QueryBuilder(static::$cm, $cls, static::$connection);
-    }
-
-    /** Convenience to start a chain quickly */
-    public static function where(string $col, mixed $op, mixed $val = null): \Marwa\DB\ORM\QueryBuilder
-    {
-        if (func_num_args() === 2) {
-            return static::query()->where($col, $op);
-        }
-
-        return static::query()->where($col, $op, $val);
     }
 
     /**
@@ -174,32 +157,6 @@ abstract class Model
         static::$includeTrashed = false;
         static::$onlyTrashed = false;
         return $qb;
-    }
-
-    /** ===== Fetchers ===== */
-
-    /** @return array<int, static> */
-    public static function all(): array
-    {
-        $qb = static::applySoftDeleteFilter(static::baseQuery());
-        $rows = $qb->get();
-        return array_map(fn($r) => static::hydrateRow($r), $rows);
-    }
-
-    public static function find(int|string $id): ?static
-    {
-        $qb = static::applySoftDeleteFilter(static::baseQuery());
-        $row = $qb->where(static::$primaryKey, '=', $id)->first();
-        return $row ? static::hydrateRow($row) : null;
-    }
-
-    public static function findOrFail(int|string $id): static
-    {
-        $m = static::find($id);
-        if (!$m) {
-            throw new \RuntimeException(static::class . " not found for " . static::$primaryKey . "={$id}");
-        }
-        return $m;
     }
 
     /** ===== Mutators ===== */
@@ -317,111 +274,6 @@ abstract class Model
         return $qb->delete();
     }
 
-    /** Soft delete (if enabled) otherwise hard delete */
-    public function delete(): bool
-    {
-        if (!$this->exists) return false;
-
-        static::fireEvent('deleting', $this);
-
-        if (static::$softDeletes) {
-            $data = ['deleted_at' => Helpers::now()];
-            $affected = static::baseQuery()
-                ->where(static::$primaryKey, '=', $this->getKey())
-                ->update($data);
-            if ($affected > 0) {
-                $this->attributes['deleted_at'] = $data['deleted_at'];
-                $this->original['deleted_at']   = $data['deleted_at'];
-                static::fireEvent('deleted', $this);
-                return true;
-            }
-            return false;
-        }
-
-        $affected = static::baseQuery()
-            ->where(static::$primaryKey, '=', $this->getKey())
-            ->delete();
-
-        if ($affected > 0) {
-            $this->exists = false;
-            static::fireEvent('deleted', $this);
-            return true;
-        }
-        return false;
-    }
-
-    /** Permanently delete (ignores soft deletes) */
-    public function forceDelete(): bool
-    {
-        if (!$this->exists) return false;
-        static::fireEvent('deleting', $this);
-
-        $affected = static::baseQuery()
-            ->where(static::$primaryKey, '=', $this->getKey())
-            ->delete();
-
-        if ($affected > 0) {
-            $this->exists = false;
-            return true;
-        }
-        return false;
-    }
-
-    /** Restore a soft-deleted row */
-    public function restore(): bool
-    {
-        if (!static::$softDeletes) return false;
-
-        $affected = static::baseQuery()
-            ->where(static::$primaryKey, '=', $this->getKey())
-            ->update(['deleted_at' => null]);
-
-        if ($affected > 0) {
-            $this->attributes['deleted_at'] = null;
-            $this->original['deleted_at']   = null;
-            return true;
-        }
-        return false;
-    }
-
-    /** Reload from DB */
-    public function refresh(): static
-    {
-        $row = static::baseQuery()
-            ->where(static::$primaryKey, '=', $this->getKey())
-            ->first();
-
-        if ($row) {
-            $arr = is_array($row) ? $row : (array)$row;
-            $this->attributes = $arr;
-            $this->original   = $arr;
-            $this->exists     = true;
-        }
-        return $this;
-    }
-
-    /** ===== Mass assignment / dirty tracking ===== */
-
-public function fill(array $attributes): static
-    {
-        /** @var array<string,mixed> $filtered */
-        $filtered = static::filterFillable($attributes);
-        $this->attributes = array_replace($this->attributes, $filtered);
-
-        return $this;
-    }
-
-    /** @return array<string,mixed> */
-    public function getDirty(): array
-    {
-        $dirty = [];
-        foreach ($this->attributes as $k => $v) {
-            $orig = $this->original[$k] ?? null;
-            if ($v !== $orig) $dirty[$k] = $v;
-        }
-        return $dirty;
-    }
-
     /** ===== Accessors / Serialization ===== */
 
     public function getKey(): int|string|null
@@ -432,44 +284,6 @@ public function fill(array $attributes): static
     public function getKeyName(): string
     {
         return static::$primaryKey;
-    }
-
-    public function getAttribute(string $key): mixed
-    {
-        return $this->attributes[$key] ?? null;
-    }
-
-    /** @return array<string,mixed> */
-    public function toArray(): array
-    {
-        $arr = [];
-        foreach ($this->attributes as $k => $v) {
-            $arr[$k] = $this->castOut($k, $v);
-        }
-        foreach ($this->relations as $k => $rel) {
-            $arr[$k] = is_array($rel)
-                ? array_map(fn($m) => $m instanceof self ? $m->toArray() : $m, $rel)
-                : ($rel instanceof self ? $rel->toArray() : $rel);
-        }
-        return $arr;
-    }
-
-    public function toJson(int $options = JSON_UNESCAPED_UNICODE): string
-    {
-        return Json::encode($this->toArray(), $options);
-    }
-
-    /** Soft delete toggles for next fetch */
-    public static function withTrashed(): static
-    {
-        static::$includeTrashed = true;
-        return new static();
-    }
-
-    public static function onlyTrashed(): static
-    {
-        static::$onlyTrashed = true;
-        return new static();
     }
 
     /** Hydrate a row into a model instance marked as existing */

@@ -110,6 +110,16 @@ final class QueryBuilder
         $this->qb->whereIn($col, $values);
         return $this;
     }
+    public function whereNull(string $col): self
+    {
+        $this->qb->whereNull($col);
+        return $this;
+    }
+    public function whereNotNull(string $col): self
+    {
+        $this->qb->whereNotNull($col);
+        return $this;
+    }
     /** @param array<int, mixed> $values */
     public function whereBetween(string $col, array $values): self
     {
