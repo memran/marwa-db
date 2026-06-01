@@ -307,10 +307,18 @@ final class User extends Model
 }
 ```
 
+The table name is inferred automatically from the class name (e.g. `User` → `users`, `UserProfile` → `user_profiles`). Set `$table` explicitly to override.
+
 Register the connection manager once:
 
 ```php
 User::setConnectionManager($manager);
+```
+
+Switch connection per-query:
+
+```php
+User::on('mysql_secondary')->where('active', 1)->get();
 ```
 
 ### Model Events
@@ -349,6 +357,7 @@ Setup:
 Query entry points:
 
 - `query(): Marwa\DB\ORM\QueryBuilder`
+- `on(string $connection): Marwa\DB\ORM\QueryBuilder`
 - `where(string $col, mixed $op, mixed $val = null): Marwa\DB\ORM\QueryBuilder`
 - `whereIn(string $col, array $values): Marwa\DB\ORM\QueryBuilder`
 - `whereNull(string $col): Marwa\DB\ORM\QueryBuilder`
@@ -366,6 +375,13 @@ Query entry points:
 - `paginate(int $perPage = 15, int $page = 1): array`
 - `chunk(int $size, callable $callback): void`
 - `chunkById(int $size, callable $callback, string $idCol = 'id'): void`
+
+Static calls forward to the query builder. Unknown static methods like `User::where(...)` or `User::orderBy(...)` are equivalent to `User::query()->where(...)`:
+
+```php
+$users = User::where('active', 1)->orderBy('name')->get();
+$user  = User::firstWhere('email', '=', 'a@b.com');
+```
 
 Writes:
 
@@ -397,13 +413,14 @@ Attribute and serialization helpers:
 - `getDirty(): array`
 - `getKey(): int|string|null`
 - `getKeyName(): string`
-- `getAttribute(string $key): mixed`
+- `getAttribute(string $key): mixed` — applies type casts on read
 - `setAttribute(string $key, mixed $value): static`
 - `hasAttribute(string $key): bool`
 - `append(array $attributes): static`
 - `setHidden(array $hidden): static`
 - `setVisible(array $visible): static`
 - `replicate(?array $except = null): static`
+- `fill(array $attributes): static` — respects `$fillable`/`$guarded`
 
 Type casting:
 
@@ -414,42 +431,125 @@ Type casting:
 - `toArray(): array`
 - `toJson(int $options = JSON_UNESCAPED_UNICODE): string`
 
+Supported cast types: `int`, `float`, `bool`, `json`. Casts apply lazily on `getAttribute()` reads and `toArray()` serialization.
+
+```php
+class User extends Model
+{
+    protected static array $casts = ['is_active' => 'bool', 'meta' => 'json'];
+}
+
+$user = User::find(1);
+var_dump($user->is_active); // bool, not int
+```
+
 Soft deletes:
 
-- `delete(): bool`
-- `forceDelete(): bool`
+- `delete(): bool` — marks `deleted_at` when `$softDeletes` is true
+- `forceDelete(): bool` — hard deletes even with soft deletes enabled
 - `restore(): bool`
 - `trashed(): bool`
-- `withTrashed(): static`
-- `onlyTrashed(): static`
+- `withTrashed(): Marwa\DB\ORM\QueryBuilder` — includes soft-deleted rows
+- `onlyTrashed(): Marwa\DB\ORM\QueryBuilder` — only soft-deleted rows
+
+```php
+class Post extends Model
+{
+    protected static bool $softDeletes = true;
+}
+
+// Default: excludes soft-deleted
+$posts = Post::where('active', 1)->get();
+
+// Include trashed
+$all = Post::withTrashed()->where('active', 1)->get();
+
+// Only trashed
+$trashed = Post::onlyTrashed()->get();
+```
 
 Scopes:
 
 - `addGlobalScope(Closure $scope, ?string $identifier = null): void`
 - `withoutGlobalScope(string $identifier): static`
-
-### Relation classes
-
-The package includes relation classes for eager loading:
-
-- `HasOne` - one-to-one relationship
-- `HasMany` - one-to-many relationship
-- `BelongsTo` - inverse of HasMany/HasOne
-- `BelongsToMany` - many-to-many via pivot table
-- `MorphTo` - polymorphic (morphTo)
-- `MorphMany` - polymorphic (morphMany)
-
-Example:
+- Local scopes: methods named `scopeXxx()` are callable as `->xxx()` or `Model::xxx()`, returning the query builder for chaining
 
 ```php
-// In User model
-public function posts(): HasMany
+class User extends Model
 {
-    return new HasMany(static::$cm, static::$connection, static::class, Post::class, 'user_id');
+    public function scopeActive($query): void
+    {
+        $query->where('active', 1);
+    }
+    public function scopePopular($query): void
+    {
+        $query->where('votes', '>', 100);
+    }
+}
+
+// Scopes compose via the query builder chain
+$users = User::active()->popular()->orderBy('name')->get();
+
+// Or on an instance
+$user->active()->popular()->get();
+```
+
+### Relations
+
+Define relationships with shorthand methods on your model:
+
+```php
+class User extends Model
+{
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class, 'user_id');
+    }
+    public function profile(): HasOne
+    {
+        return $this->hasOne(Profile::class, 'user_id');
+    }
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id');
+    }
 }
 ```
 
-Example:
+Supported relations:
+
+- `HasOne` — `$this->hasOne(Related::class, 'foreign_key', 'local_key')`
+- `HasMany` — `$this->hasMany(Related::class, 'foreign_key', 'local_key')`
+- `BelongsTo` — `$this->belongsTo(Related::class, 'foreign_key', 'owner_key')`
+- `BelongsToMany` — `$this->belongsToMany(Related::class, 'pivot_table', 'foreign_pivot_key', 'related_pivot_key', 'parent_key', 'related_key', ['pivot_columns'])`
+- `MorphTo` — `$this->morphTo('morph_type', 'morph_id')`
+- `MorphMany` — `$this->morphMany(Related::class, 'morph_type', 'morph_id', 'local_key')`
+
+Lazy loading:
+
+```php
+foreach ($user->posts as $post) { ... }
+```
+
+Eager loading via `with()`:
+
+```php
+$users = User::with('posts', 'profile')->get();
+$users = User::with('posts.comments')->get();
+```
+
+Eager loading after retrieval via `load()` / `loadMissing()`:
+
+```php
+$user->load('posts');
+$user->loadMissing('comments'); // only loads if not already loaded
+```
+
+### Model instance API
 
 ```php
 $user = User::find(1);
@@ -465,31 +565,107 @@ if ($user !== null) {
 
 `Marwa\DB\ORM\QueryBuilder` is returned by `Model::query()` and hydrates records into model instances.
 
-Common methods:
+```php
+$users = User::where('active', 1)
+    ->with('posts', 'profile')
+    ->orderBy('name')
+    ->limit(10)
+    ->get();
+```
+
+Fluent proxy methods:
 
 - `select(string ...$cols): self`
 - `selectRaw(string $expr, array $bindings = []): self`
-- `where(string $col, string $op, mixed $val): self`
+- `where(callable|string $col, mixed $op = null, mixed $val = null): self`
+- `orWhere(callable|string $col, mixed $op = null, mixed $val = null): self`
+- `whereColumn(string $first, mixed $operator, ?string $second = null): self`
+- `orWhereColumn(...): self`
+- `whereRaw(string $sql, array $bindings = []): self`
+- `orWhereRaw(...): self`
 - `whereIn(string $col, array $values): self`
+- `whereNotIn(string $col, array $values): self`
+- `whereNull(string $col): self`
+- `whereNotNull(string $col): self`
+- `whereBetween(string $col, array $values): self`
+- `whereNotBetween(string $col, array $values): self`
+- `whereExists(callable|Builder $subquery): self`
+- `whereNotExists(...): self`
+- `whereJsonContains(string $col, mixed $value): self`
+- `whereJsonLength(string $col, int $length): self`
+- `whereJsonValue(string $col, string $path, mixed $value): self`
+- `whereNested(callable $callback, string $boolean = 'and'): self`
+
+Grouping / ordering:
+
+- `groupBy(string ...$cols): self`
+- `groupByRaw(string $expression): self`
+- `having(string $col, string $op, mixed $val): self`
+- `orHaving(string $col, string $op, mixed $val): self`
+- `havingRaw(string $sql, array $bindings = []): self`
 - `orderBy(string $col, string $dir = 'asc'): self`
 - `limit(int $n): self`
 - `offset(int $n): self`
-- `with(string ...$relations): self`
-- `get(): array`
+
+Joins:
+
+- `join(string $table, string $first, string $operator, string $second): self`
+- `leftJoin(...): self`
+- `rightJoin(...): self`
+
+Reads:
+
+- `get(): array<Model>`
 - `first(): ?Model`
 - `firstOrFail(): Model`
-- `exists(): bool`
-- `insert(array $data): int`
-- `update(array $data): int`
-- `delete(): int`
+- `value(string $column): mixed`
+- `pluck(string $column): Collection`
 - `count(string $col = '*'): int`
+- `exists(): bool`
 - `max(string $col): mixed`
 - `min(string $col): mixed`
 - `sum(string $col): int|float|null`
 - `avg(string $col): ?float`
+- `paginate(int $perPage = 15, int $page = 1): array`
 - `chunk(int $size, callable $callback): void`
 - `chunkById(int $size, callable $callback, string $idCol = 'id'): void`
-- `getBaseBuilder(): Marwa\DB\Query\Builder`
+
+Writes:
+
+- `insert(array $data): int`
+- `insertGetId(array $data): int|string`
+- `update(array $data): int`
+- `delete(): int`
+- `increment(string $column, int|float $amount = 1): int`
+- `decrement(string $column, int|float $amount = 1): int`
+
+Eager loading:
+
+- `with(string ...$relations): self`
+
+```php
+User::with('posts', 'profile.comments')->get();
+```
+
+Connection switching:
+
+- `on(string $connection): self`
+
+```php
+User::on('replica')->where('active', 1)->get();
+```
+
+Scope forwarding — unknown methods are resolved as local scopes on the model:
+
+```php
+User::active()->popular()->get();
+```
+
+Utilities:
+
+- `toSql(): string`
+- `getBindings(): array`
+- `clear(): void`
 
 ## Schema Builder
 
@@ -774,7 +950,7 @@ composer test:integration
 Run static analysis:
 
 ```bash
-composer run analyse
+composer analyze
 ```
 
 Run syntax linting:
