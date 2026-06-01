@@ -15,6 +15,13 @@ use Marwa\DB\ORM\Traits\HasAttributes;
 use Marwa\DB\ORM\Traits\HasQuery;
 use Marwa\DB\ORM\Traits\HasState;
 use Marwa\DB\ORM\Traits\Observable;
+use Marwa\DB\ORM\QueryBuilder;
+use Marwa\DB\ORM\Relations\BelongsTo;
+use Marwa\DB\ORM\Relations\HasMany;
+use Marwa\DB\ORM\Relations\HasOne;
+use Marwa\DB\ORM\Relations\BelongsToMany;
+use Marwa\DB\ORM\Relations\MorphTo;
+use Marwa\DB\ORM\Relations\MorphMany;
 
 /** @phpstan-consistent-constructor */
 abstract class Model
@@ -51,17 +58,23 @@ abstract class Model
     }
 
     public function boot(): void {}
+    /** @var array<class-string, string> */
+    private static array $tableCache = [];
+
     /**
      * Get the fully-resolved table name for this model.
-     * If not set, infer from the class name and cache it in static::$table.
+     * If not set, infer from the class name and cache per-class.
      */
     public static function table(): string
     {
         if (static::$table !== null && static::$table !== '') {
             return static::$table;
         }
-        static::$table = static::inferTableName();
-        return static::$table;
+        $cls = static::class;
+        if (!isset(self::$tableCache[$cls])) {
+            self::$tableCache[$cls] = static::inferTableName();
+        }
+        return self::$tableCache[$cls];
     }
 
     /**
@@ -70,6 +83,7 @@ abstract class Model
     public static function setTable(string $table): void
     {
         static::$table = $table;
+        unset(self::$tableCache[static::class]);
     }
 
 
@@ -78,6 +92,12 @@ abstract class Model
     {
         static::$cm = $cm;
         static::$connection = $connection;
+    }
+
+    /** Switch connection for the next query */
+    public static function on(string $connection): \Marwa\DB\ORM\QueryBuilder
+    {
+        return static::query()->on($connection);
     }
 
     /** Model‑aware query builder (hydrates to models, supports eager loading) */
@@ -89,6 +109,14 @@ abstract class Model
         /** @var class-string<static> $cls */
         $cls = static::class;
         return new \Marwa\DB\ORM\QueryBuilder(static::$cm, $cls, static::$connection);
+    }
+
+    /** Begin a query with eager-loaded relations.
+     *  Usage: User::with('posts', 'profile')->get()
+     */
+    public static function with(string ...$relations): QueryBuilder
+    {
+        return static::query()->with(...$relations);
     }
 
     /**
@@ -144,19 +172,23 @@ abstract class Model
             return $qb;
         }
         if (static::$onlyTrashed) {
-            // requires whereNotNull in low-level Builder (recommended)
-            if (method_exists($qb, 'whereNotNull')) {
-                $qb->whereNotNull('deleted_at');
-            }
+            $qb->whereNotNull('deleted_at');
         } elseif (!static::$includeTrashed) {
-            if (method_exists($qb, 'whereNull')) {
-                $qb->whereNull('deleted_at');
-            }
+            $qb->whereNull('deleted_at');
         }
-        // reset flags for next call
         static::$includeTrashed = false;
         static::$onlyTrashed = false;
         return $qb;
+    }
+
+    /** @return array{enabled:bool, includeTrashed:bool, onlyTrashed:bool} */
+    public static function getSoftDeleteState(): array
+    {
+        return [
+            'enabled' => static::$softDeletes,
+            'includeTrashed' => static::$includeTrashed,
+            'onlyTrashed' => static::$onlyTrashed,
+        ];
     }
 
     /** ===== Mutators ===== */
@@ -166,10 +198,10 @@ abstract class Model
      */
     public static function create(array $attributes): static
     {
-        $instance = new static();
         /** @var array<string,mixed> $data */
         $data = static::filterFillable($attributes);
 
+        $instance = new static($data);
         static::fireEvent('creating', $instance);
 
         if (static::$timestamps) {
@@ -178,22 +210,15 @@ abstract class Model
 
         static::baseQuery()->insert($data);
 
-        $model = $instance;
         $id = static::$cm?->getPdo(static::$connection)->lastInsertId();
         if ($id && is_numeric($id)) {
-            $fresh = static::find((int)$id);
-            if ($fresh) {
-                $model = $fresh;
-            }
+            $instance->attributes[static::$primaryKey] = (int)$id;
         }
+        $instance->original = $instance->attributes;
+        $instance->exists = true;
 
-        if ($model === $instance) {
-            $model = new static($data, true);
-        }
-
-        unset($instance);
-        static::fireEvent('created', $model);
-        return $model;
+        static::fireEvent('created', $instance);
+        return $instance;
     }
 
     /** Insert or update this instance */
@@ -207,9 +232,11 @@ abstract class Model
         if ($this->exists) {
             if (!$data) return true;
             static::fireEvent('updating', $this);
-            $affected = static::baseQuery()
-                ->where(static::$primaryKey, '=', $this->getKey())
-                ->update($data);
+            $query = static::baseQuery()->where(static::$primaryKey, '=', $this->getKey());
+            if (static::$softDeletes) {
+                $query->whereNull('deleted_at');
+            }
+            $affected = $query->update($data);
             if ($affected > 0) {
                 $this->original = array_replace($this->original, $data);
                 $this->attributes = array_replace($this->attributes, $data);
@@ -222,7 +249,7 @@ abstract class Model
 
         // Insert path
         static::fireEvent('saving', $this);
-        $insertData = $this->attributes + $data;
+        $insertData = static::filterFillable($this->attributes) + $data;
         if (static::$timestamps) {
             $this->touchTimestamps($insertData);
         }
@@ -288,7 +315,7 @@ abstract class Model
 
     /** Hydrate a row into a model instance marked as existing */
     /** @param array<string,mixed>|object $row */
-    protected static function hydrateRow(array|object $row): static
+    public static function hydrateRow(array|object $row): static
     {
         $data = is_array($row) ? $row : (array)$row;
         return new static($data, true);
@@ -360,8 +387,27 @@ abstract class Model
         return $word . 's';
     }
 
+    public function __get(string $name): mixed
+    {
+        if ($this->hasAttribute($name)) {
+            return $this->getAttribute($name);
+        }
+
+        return $this->getRelationValue($name);
+    }
+
+    public function __isset(string $name): bool
+    {
+        if ($this->hasAttribute($name)) {
+            return $this->getAttribute($name) !== null;
+        }
+
+        return $this->relationLoaded($name);
+    }
+
     /**
      * Dynamically handle calls to the builder (local scopes).
+     * Returns the ORM\QueryBuilder for chaining.
      */
     /** @param array<mixed> $parameters */
     public function __call(string $method, array $parameters): mixed
@@ -369,28 +415,75 @@ abstract class Model
         $scope = 'scope' . ucfirst($method);
 
         if (method_exists($this, $scope)) {
-            $builder = $this->baseQuery();
-            return $this->{$scope}($builder, ...$parameters);
+            $builder = static::query();
+            $this->{$scope}($builder->getBaseBuilder(), ...$parameters);
+            return $builder;
         }
 
         throw new \InvalidArgumentException("Method {$method} does not exist.");
     }
 
+    /** ---------- Shorthand relation constructors ---------- */
+
+    protected function hasMany(string $related, string $foreignKey, string $localKey = 'id'): HasMany
+    {
+        return new HasMany(static::$cm, static::$connection, static::class, $related, $foreignKey, $localKey);
+    }
+
+    protected function belongsTo(string $related, string $foreignKey, string $ownerKey = 'id'): BelongsTo
+    {
+        return new BelongsTo(static::$cm, static::$connection, static::class, $related, $foreignKey, $ownerKey);
+    }
+
+    protected function hasOne(string $related, string $foreignKey, string $localKey = 'id'): HasOne
+    {
+        return new HasOne(static::$cm, static::$connection, static::class, $related, $foreignKey, $localKey);
+    }
+
+    protected function belongsToMany(
+        string $related,
+        string $pivotTable,
+        string $foreignPivotKey,
+        string $relatedPivotKey,
+        string $parentKey = 'id',
+        string $relatedKey = 'id',
+        array $pivotColumns = []
+    ): BelongsToMany {
+        return new BelongsToMany(static::$cm, static::$connection, static::class, $related, $pivotTable, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey, $pivotColumns);
+    }
+
+    protected function morphTo(string $morphType = 'morph_type', string $morphId = 'morph_id'): MorphTo
+    {
+        return new MorphTo(static::$cm, static::$connection, static::class, static::class, $morphType, $morphId);
+    }
+
+    protected function morphMany(string $related, string $morphType, string $morphId, string $localKey = 'id'): MorphMany
+    {
+        return new MorphMany(static::$cm, static::$connection, static::class, $related, $morphType, $morphId, $localKey);
+    }
+
     /**
-     * For static calls like User::active().
+     * For static calls like User::active() or User::where(...).
+     * If the method is a known scope, run it and return the ORM\QueryBuilder for chaining.
+     * Otherwise forward to the query builder.
      */
     /** @param array<mixed> $parameters */
     public static function __callStatic(string $method, array $parameters): mixed
     {
-        $instance = new static();
         $scope = 'scope' . ucfirst($method);
 
-        if (method_exists($instance, $scope)) {
-            $builder = $instance->baseQuery();
-            return $instance->{$scope}($builder, ...$parameters);
+        if (method_exists(static::class, $scope)) {
+            $instance = new static();
+            $builder = static::query();
+            $instance->{$scope}($builder->getBaseBuilder(), ...$parameters);
+            return $builder;
         }
 
-        throw new \InvalidArgumentException("Static method {$method} does not exist.");
+        if (!method_exists(static::class, $method)) {
+            return static::query()->{$method}(...$parameters);
+        }
+
+        throw new \InvalidArgumentException("Static method {$method} does not exist or is not accessible.");
     }
 
     /* -----------------------------------------------------------------

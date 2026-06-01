@@ -45,7 +45,7 @@ final class HasOne extends Relation
             $fk = $arr[$this->foreignKey] ?? null;
             if ($fk === null) continue;
             if (!isset($buckets[$fk])) {
-                $buckets[$fk] = new $rel($arr, true);
+                $buckets[$fk] = $rel::hydrateRow($arr);
             }
         }
 
@@ -54,5 +54,38 @@ final class HasOne extends Relation
             $key = $m->getAttribute($this->localKey);
             $m->setRelation($name, $buckets[$key] ?? null);
         }
+    }
+
+    public function first(Model $parent): ?Model
+    {
+        $lk = $parent->getAttribute($this->localKey);
+        if ($lk === null) return null;
+        $rel = $this->related;
+        $row = $this->qb($rel::table())
+            ->where($this->foreignKey, '=', $lk)
+            ->first();
+        if ($row === null) return null;
+        return $rel::hydrateRow((array)$row);
+    }
+
+    public function getResults(Model $parent): ?Model
+    {
+        return $this->first($parent);
+    }
+
+    /** @return list<Model> */
+    public function get(Model $parent): array
+    {
+        $lk = $parent->getAttribute($this->localKey);
+        if ($lk === null) return [];
+        $rel = $this->related;
+        $rows = $this->qb($rel::table())
+            ->where($this->foreignKey, '=', $lk)
+            ->get();
+        $models = [];
+        foreach ($rows as $row) {
+            $models[] = $rel::hydrateRow((array)$row);
+        }
+        return $models;
     }
 }

@@ -86,17 +86,13 @@ trait SoftDeletes
         return false;
     }
 
-    public static function withTrashed(): static
+    public static function withTrashed(): \Marwa\DB\ORM\QueryBuilder
     {
-        static::$includeTrashed = true;
-
-        return new static();
+        return static::query()->withTrashed();
     }
 
-    public static function onlyTrashed(): static
+    public static function onlyTrashed(): \Marwa\DB\ORM\QueryBuilder
     {
-        static::$onlyTrashed = true;
-
-        return new static();
+        return static::query()->onlyTrashed();
     }
 }

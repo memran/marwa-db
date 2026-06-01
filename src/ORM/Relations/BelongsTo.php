@@ -44,7 +44,7 @@ final class BelongsTo extends Relation
             $arr = is_array($row) ? $row : (array)$row;
             $ok  = $arr[$this->ownerKey] ?? null;
             if ($ok === null) continue;
-            $owners[$ok] = new $rel($arr, true);
+            $owners[$ok] = $rel::hydrateRow($arr);
         }
 
         foreach ($models as $m) {
@@ -52,5 +52,38 @@ final class BelongsTo extends Relation
             $fk = $m->getAttribute($this->foreignKey);
             $m->setRelation($name, $fk !== null && isset($owners[$fk]) ? $owners[$fk] : null);
         }
+    }
+
+    public function first(Model $parent): ?Model
+    {
+        $fk = $parent->getAttribute($this->foreignKey);
+        if ($fk === null) return null;
+        $rel = $this->related;
+        $row = $this->qb($rel::table())
+            ->where($this->ownerKey, '=', $fk)
+            ->first();
+        if ($row === null) return null;
+        return $rel::hydrateRow((array)$row);
+    }
+
+    public function getResults(Model $parent): ?Model
+    {
+        return $this->first($parent);
+    }
+
+    /** @return list<Model> */
+    public function get(Model $parent): array
+    {
+        $fk = $parent->getAttribute($this->foreignKey);
+        if ($fk === null) return [];
+        $rel = $this->related;
+        $rows = $this->qb($rel::table())
+            ->where($this->ownerKey, '=', $fk)
+            ->get();
+        $models = [];
+        foreach ($rows as $row) {
+            $models[] = $rel::hydrateRow((array)$row);
+        }
+        return $models;
     }
 }

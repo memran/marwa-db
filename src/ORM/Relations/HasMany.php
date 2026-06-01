@@ -44,7 +44,7 @@ final class HasMany extends Relation
             $arr = is_array($row) ? $row : (array)$row;
             $fk  = $arr[$this->foreignKey] ?? null;
             if ($fk === null) continue;
-            $buckets[$fk][] = new $rel($arr, true);
+            $buckets[$fk][] = $rel::hydrateRow($arr);
         }
 
         foreach ($models as $m) {
@@ -52,5 +52,39 @@ final class HasMany extends Relation
             $key = $m->getAttribute($this->localKey);
             $m->setRelation($name, $buckets[$key] ?? []);
         }
+    }
+
+    public function first(Model $parent): ?Model
+    {
+        $lk = $parent->getAttribute($this->localKey);
+        if ($lk === null) return null;
+        $rel = $this->related;
+        $row = $this->qb($rel::table())
+            ->where($this->foreignKey, '=', $lk)
+            ->first();
+        if ($row === null) return null;
+        return $rel::hydrateRow((array)$row);
+    }
+
+    /** @return list<Model> */
+    public function getResults(Model $parent): array
+    {
+        return $this->get($parent);
+    }
+
+    /** @return list<Model> */
+    public function get(Model $parent): array
+    {
+        $lk = $parent->getAttribute($this->localKey);
+        if ($lk === null) return [];
+        $rel = $this->related;
+        $rows = $this->qb($rel::table())
+            ->where($this->foreignKey, '=', $lk)
+            ->get();
+        $models = [];
+        foreach ($rows as $row) {
+            $models[] = $rel::hydrateRow((array)$row);
+        }
+        return $models;
     }
 }

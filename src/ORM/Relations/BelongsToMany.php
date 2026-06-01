@@ -116,7 +116,7 @@ final class BelongsToMany extends Relation
             $arr = is_array($row) ? $row : (array)$row;
             $rid = $arr[$this->relatedKey] ?? null;
             if ($rid === null) continue;
-            $relatedModelsById[$rid] = new $relCls($arr, true);
+            $relatedModelsById[$rid] = $relCls::hydrateRow($arr);
         }
 
         // 4) attach to each parent (hydrate + attach pivot as a 'pivot' relation on each related)
@@ -138,6 +138,44 @@ final class BelongsToMany extends Relation
 
             $parent->setRelation($name, $bucket);
         }
+    }
+
+    public function first(Model $parent): ?Model
+    {
+        $pk = $parent->getAttribute($this->parentKey);
+        if ($pk === null) return null;
+        $rel = $this->related;
+        $row = $this->qb($rel::table())
+            ->join($this->pivotTable, $this->pivotTable . '.' . $this->relatedPivotKey, '=', $rel::table() . '.' . $this->relatedKey)
+            ->where($this->pivotTable . '.' . $this->foreignPivotKey, '=', $pk)
+            ->select($rel::table() . '.*')
+            ->first();
+        if ($row === null) return null;
+        return $rel::hydrateRow((array)$row);
+    }
+
+    /** @return list<Model> */
+    public function get(Model $parent): array
+    {
+        $pk = $parent->getAttribute($this->parentKey);
+        if ($pk === null) return [];
+        $rel = $this->related;
+        $rows = $this->qb($rel::table())
+            ->join($this->pivotTable, $this->pivotTable . '.' . $this->relatedPivotKey, '=', $rel::table() . '.' . $this->relatedKey)
+            ->where($this->pivotTable . '.' . $this->foreignPivotKey, '=', $pk)
+            ->select($rel::table() . '.*')
+            ->get();
+        $models = [];
+        foreach ($rows as $row) {
+            $models[] = $rel::hydrateRow((array)$row);
+        }
+        return $models;
+    }
+
+    /** @return list<Model> */
+    public function getResults(Model $parent): array
+    {
+        return $this->get($parent);
     }
 
     /** ---------- Optional write helpers on the pivot ---------- */

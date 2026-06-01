@@ -31,14 +31,14 @@ trait HasState
 
     public function refresh(): static
     {
-        $row = static::baseQuery()
-            ->where(static::$primaryKey, '=', $this->getKey())
-            ->first();
+        $key = $this->getKey();
+        if ($key === null) return $this;
 
-        if ($row) {
-            $arr = is_array($row) ? $row : (array)$row;
-            $this->attributes = $arr;
-            $this->original   = $arr;
+        $fresh = static::query()->where(static::$primaryKey, '=', $key)->first();
+
+        if ($fresh) {
+            $this->attributes = $fresh->attributes;
+            $this->original   = $fresh->attributes;
             $this->exists     = true;
         }
         return $this;

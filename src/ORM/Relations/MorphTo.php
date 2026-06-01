@@ -56,7 +56,7 @@ final class MorphTo extends Relation
             $idToModel = [];
             foreach ($rows as $row) {
                 $arr = is_array($row) ? $row : (array)$row;
-                $idToModel[(string)($arr['id'] ?? '')] = new $rel($arr, true);
+                $idToModel[(string)($arr['id'] ?? '')] = $rel::hydrateRow($arr);
             }
 
             foreach ($models as $m) {
@@ -65,5 +65,50 @@ final class MorphTo extends Relation
                 $m->setRelation($name, $idToModel[$mid] ?? null);
             }
         }
+    }
+
+    public function first(Model $parent): ?Model
+    {
+        $type = $parent->getAttribute($this->morphType);
+        $id = $parent->getAttribute($this->morphId);
+        if ($type === null || $id === null) return null;
+
+        $relatedClass = $this->morphMap[$type] ?? $type;
+        if (!class_exists($relatedClass)) return null;
+
+        /** @var class-string<Model> $rel */
+        $rel = $relatedClass;
+        $row = $this->qb($rel::table())
+            ->where('id', '=', $id)
+            ->first();
+        if ($row === null) return null;
+        return $rel::hydrateRow((array)$row);
+    }
+
+    public function getResults(Model $parent): ?Model
+    {
+        return $this->first($parent);
+    }
+
+    /** @return list<Model> */
+    public function get(Model $parent): array
+    {
+        $type = $parent->getAttribute($this->morphType);
+        $id = $parent->getAttribute($this->morphId);
+        if ($type === null || $id === null) return [];
+
+        $relatedClass = $this->morphMap[$type] ?? $type;
+        if (!class_exists($relatedClass)) return [];
+
+        /** @var class-string<Model> $rel */
+        $rel = $relatedClass;
+        $rows = $this->qb($rel::table())
+            ->where('id', '=', $id)
+            ->get();
+        $models = [];
+        foreach ($rows as $row) {
+            $models[] = $rel::hydrateRow((array)$row);
+        }
+        return $models;
     }
 }

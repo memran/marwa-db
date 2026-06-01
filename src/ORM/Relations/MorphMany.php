@@ -63,12 +63,64 @@ final class MorphMany extends Relation
             $arr = is_array($row) ? $row : (array)$row;
             $pk = $arr[$this->morphId] ?? null;
             if ($pk === null) continue;
-            $buckets[$pk][] = new $rel($arr, true);
+            $buckets[$pk][] = $rel::hydrateRow($arr);
         }
 
         foreach ($models as $m) {
             $key = $m->getAttribute($this->localKey);
             $m->setRelation($name, $buckets[$key] ?? []);
         }
+    }
+
+    public function first(Model $parent): ?Model
+    {
+        $lk = $parent->getAttribute($this->localKey);
+        if ($lk === null) return null;
+
+        $type = $this->related;
+        if (isset($this->morphMap[$type])) {
+            $type = $this->morphMap[$type];
+        }
+        if (!class_exists($type)) return null;
+
+        /** @var class-string<Model> $rel */
+        $rel = $type;
+        $row = $this->qb($rel::table())
+            ->where($this->morphType, '=', $rel)
+            ->where($this->morphId, '=', $lk)
+            ->first();
+        if ($row === null) return null;
+        return $rel::hydrateRow((array)$row);
+    }
+
+    /** @return list<Model> */
+    public function getResults(Model $parent): array
+    {
+        return $this->get($parent);
+    }
+
+    /** @return list<Model> */
+    public function get(Model $parent): array
+    {
+        $lk = $parent->getAttribute($this->localKey);
+        if ($lk === null) return [];
+
+        $type = $this->related;
+        if (isset($this->morphMap[$type])) {
+            $type = $this->morphMap[$type];
+        }
+        if (!class_exists($type)) return [];
+
+        /** @var class-string<Model> $rel */
+        $rel = $type;
+        $rows = $this->qb($rel::table())
+            ->where($this->morphType, '=', $rel)
+            ->where($this->morphId, '=', $lk)
+            ->get();
+        $models = [];
+        foreach ($rows as $row) {
+            $models[] = $rel::hydrateRow((array)$row);
+        }
+        return $models;
     }
 }

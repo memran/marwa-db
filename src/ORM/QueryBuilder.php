@@ -7,6 +7,7 @@ namespace Marwa\DB\ORM;
 use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\Query\Builder as BaseBuilder;
 use Marwa\DB\ORM\Relations\Relation;
+use Marwa\DB\ORM\Model;
 
 /**
  * Model-aware builder:
@@ -23,6 +24,10 @@ final class QueryBuilder
 
     /** @var array<int,string> */
     private array $eager = [];
+
+    private bool $includeTrashed = false;
+    private bool $onlyTrashed = false;
+    private bool $softDeleteApplied = false;
 
     public function __construct(
         private ConnectionManager $cm,
@@ -52,23 +57,29 @@ final class QueryBuilder
         $this->qb->selectRaw($expr, $bindings);
         return $this;
     }
-    public function where(string $col, mixed $op, mixed $val = null): self
+    public function where(callable|string $col, mixed $op = null, mixed $val = null): self
     {
+        if (is_callable($col)) {
+            $this->qb->whereNested($col);
+            return $this;
+        }
         if (func_num_args() === 2) {
             $this->qb->where($col, $op);
             return $this;
         }
-
         $this->qb->where($col, $op, $val);
         return $this;
     }
-    public function orWhere(string $col, mixed $op, mixed $val = null): self
+    public function orWhere(callable|string $col, mixed $op = null, mixed $val = null): self
     {
+        if (is_callable($col)) {
+            $this->qb->whereNested($col, 'or');
+            return $this;
+        }
         if (func_num_args() === 2) {
             $this->qb->orWhere($col, $op);
             return $this;
         }
-
         $this->qb->orWhere($col, $op, $val);
         return $this;
     }
@@ -118,6 +129,32 @@ final class QueryBuilder
     public function whereNotNull(string $col): self
     {
         $this->qb->whereNotNull($col);
+        return $this;
+    }
+    /** @param array<int, mixed> $values */
+    public function whereNotIn(string $col, array $values): self
+    {
+        $this->qb->whereNotIn($col, $values);
+        return $this;
+    }
+    public function whereJsonContains(string $col, mixed $value): self
+    {
+        $this->qb->whereJsonContains($col, $value);
+        return $this;
+    }
+    public function whereJsonLength(string $col, int $length): self
+    {
+        $this->qb->whereJsonLength($col, $length);
+        return $this;
+    }
+    public function whereJsonValue(string $col, string $path, mixed $value): self
+    {
+        $this->qb->whereJsonValue($col, $path, $value);
+        return $this;
+    }
+    public function whereNested(callable $callback, string $boolean = 'and'): self
+    {
+        $this->qb->whereNested($callback, $boolean);
         return $this;
     }
     /** @param array<int, mixed> $values */
@@ -172,6 +209,11 @@ final class QueryBuilder
         $this->qb->having($col, $op, $val);
         return $this;
     }
+    public function orHaving(string $col, string $op, mixed $val): self
+    {
+        $this->qb->orHaving($col, $op, $val);
+        return $this;
+    }
     /** @param array<int, mixed> $bindings */
     public function havingRaw(string $sql, array $bindings = []): self
     {
@@ -196,6 +238,7 @@ final class QueryBuilder
     /** @param callable(int, array<Model>): void $callback */
     public function chunk(int $size, callable $callback): void
     {
+        $this->applySoftDelete();
         $this->qb->chunk($size, function (int $offset, array $rows) use ($callback): void {
             $models = array_map(fn($row) => $this->hydrate($row), $rows);
             $callback($offset, $models);
@@ -205,17 +248,20 @@ final class QueryBuilder
     /** Aggregates (DB-side) */
     public function count(string $col = '*'): int
     {
+        $this->applySoftDelete();
         return $this->qb->count($col);
     }
 
     public function exists(): bool
     {
+        $this->applySoftDelete();
         return $this->qb->exists();
     }
 
     /** @param callable(int, array<Model>): void $callback */
     public function chunkById(int $size, callable $callback, string $idCol = 'id'): void
     {
+        $this->applySoftDelete();
         $this->qb->chunkById($size, function (int|string $lastId, array $rows) use ($callback): void {
             $models = array_map(fn($row) => $this->hydrate($row), $rows);
             $callback((int) $lastId, $models);
@@ -224,18 +270,22 @@ final class QueryBuilder
 
     public function max(string $col): mixed
     {
+        $this->applySoftDelete();
         return $this->qb->max($col);
     }
     public function min(string $col): mixed
     {
+        $this->applySoftDelete();
         return $this->qb->min($col);
     }
     public function sum(string $col): int|float|null
     {
+        $this->applySoftDelete();
         return $this->qb->sum($col);
     }
     public function avg(string $col): ?float
     {
+        $this->applySoftDelete();
         return $this->qb->avg($col);
     }
 
@@ -248,11 +298,79 @@ final class QueryBuilder
         return $this;
     }
 
+    /** ---------- Soft Deletes ---------- */
+
+    public function withTrashed(): self
+    {
+        $this->includeTrashed = true;
+        $this->onlyTrashed = false;
+        return $this;
+    }
+
+    public function onlyTrashed(): self
+    {
+        $this->onlyTrashed = true;
+        $this->includeTrashed = false;
+        return $this;
+    }
+
+    public function value(string $column): mixed
+    {
+        $this->applySoftDelete();
+        return $this->qb->value($column);
+    }
+
+    public function toSql(): string
+    {
+        return $this->qb->toSql();
+    }
+
+    public function getBindings(): array
+    {
+        return $this->qb->getBindings();
+    }
+
+    public function clear(): void
+    {
+        $this->qb->clear();
+    }
+
+    /** Switch connection for this query */
+    public function on(string $connection): self
+    {
+        $this->connection = $connection;
+        $this->qb = (new BaseBuilder($this->cm, $this->connection))->table($this->modelClass::table());
+        return $this;
+    }
+
+    public function pluck(string $column): \Marwa\DB\Support\Collection
+    {
+        return $this->qb->pluck($column);
+    }
+
+    /**
+     * @return array{data:array<int, Model>, total:int, per_page:int, current_page:int, last_page:int}
+     */
+    public function paginate(int $perPage = 15, int $page = 1): array
+    {
+        $this->applySoftDelete();
+        $qb = clone $this->qb;
+        $qb->limit(null)->offset(null);
+        $total = $qb->count();
+
+        $rows = $this->qb->limit($perPage)->offset(($page - 1) * $perPage)->get();
+
+        $models = array_map(fn($row) => $this->hydrate($row), $rows);
+
+        return (new \Marwa\DB\Query\Pagination())->make($models, $total, $perPage, $page);
+    }
+
     /** ---------- Reads (hydrate) ---------- */
 
     /** @return array<int, Model> */
     public function get(): array
     {
+        $this->applySoftDelete();
         $rows = $this->qb->get();
         $models = array_map(fn($row) => $this->hydrate($row), $rows);
         $this->performEagerLoad($models);
@@ -261,6 +379,7 @@ final class QueryBuilder
 
     public function first(): ?Model
     {
+        $this->applySoftDelete();
         $row = $this->qb->first();
         if (!$row) return null;
         $model = $this->hydrate($row);
@@ -270,6 +389,7 @@ final class QueryBuilder
 
     public function firstOrFail(): Model
     {
+        $this->applySoftDelete();
         $row = $this->qb->first();
         if (!$row) {
             throw new \Marwa\DB\Exceptions\ORMException(
@@ -323,7 +443,37 @@ final class QueryBuilder
         /** @var class-string<Model> $cls */
         $cls = $this->modelClass;
         $data = is_array($row) ? $row : (array)$row;
-        return new $cls($data, true);
+        return $cls::hydrateRow($data);
+    }
+
+    /** ---------- Scope forwarding ---------- */
+
+    public function __call(string $method, array $parameters): mixed
+    {
+        $scope = 'scope' . ucfirst($method);
+        if (method_exists($this->modelClass, $scope)) {
+            $tmp = new $this->modelClass([], true);
+            $result = $tmp->{$scope}($this->qb, ...$parameters);
+            return $result instanceof BaseBuilder ? $this : $result;
+        }
+        throw new \BadMethodCallException("Call to undefined method " . static::class . "::{$method}()");
+    }
+
+    private function applySoftDelete(): void
+    {
+        if ($this->softDeleteApplied) return;
+        $this->softDeleteApplied = true;
+        $sds = $this->modelClass::getSoftDeleteState();
+        if (!$sds['enabled']) {
+            return;
+        }
+        $incl = $this->includeTrashed || $sds['includeTrashed'];
+        $only = $this->onlyTrashed || $sds['onlyTrashed'];
+        if ($only) {
+            $this->qb->whereNotNull('deleted_at');
+        } elseif (!$incl) {
+            $this->qb->whereNull('deleted_at');
+        }
     }
 
     /** @param array<int, Model> $models */

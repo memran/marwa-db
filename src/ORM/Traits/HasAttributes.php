@@ -19,7 +19,10 @@ trait HasAttributes
 
     public function getAttribute(string $key): mixed
     {
-        return $this->attributes[$key] ?? null;
+        if (array_key_exists($key, $this->attributes)) {
+            return $this->castOut($key, $this->attributes[$key]);
+        }
+        return $this->relations[$key] ?? null;
     }
 
     public function setAttribute(string $key, mixed $value): static

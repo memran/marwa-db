@@ -23,8 +23,18 @@ abstract class Relation
      */
     abstract public function eagerLoad(array $models, string $name): void;
 
+    /** Lazy-resolve the relation for a single parent model.
+     * @return Model|array<Model>|null
+     */
+    abstract public function getResults(Model $parent): mixed;
+
     protected function qb(string $table): BaseBuilder
     {
-        return (new BaseBuilder($this->cm, $this->connection))->table($table);
+        $builder = (new BaseBuilder($this->cm, $this->connection))->table($table);
+        $sds = $this->related::getSoftDeleteState();
+        if ($sds['enabled'] && !$sds['includeTrashed'] && !$sds['onlyTrashed']) {
+            $builder->whereNull('deleted_at');
+        }
+        return $builder;
     }
 }
