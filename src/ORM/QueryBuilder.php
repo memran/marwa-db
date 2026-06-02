@@ -14,6 +14,9 @@ use Marwa\DB\ORM\Model;
  *  - Fixed table (from the model)
  *  - Hydrates rows into Model instances
  *  - Eager loading with batched relations (HasMany/BelongsTo)
+ *
+ * @method self active()
+ * @method self popular()
  */
 final class QueryBuilder
 {

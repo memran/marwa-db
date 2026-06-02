@@ -7,6 +7,8 @@ namespace Marwa\DB\Tests\ORM;
 use Marwa\DB\Config\Config;
 use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\ORM\Model;
+use Marwa\DB\ORM\QueryBuilder;
+use Marwa\DB\Query\Builder as BaseBuilder;
 use PHPUnit\Framework\TestCase;
 
 final class ScopeTest extends TestCase
@@ -51,8 +53,7 @@ final class ScopeTest extends TestCase
 
         ScopedUser::setConnectionManager($manager);
 
-        $user = (new ScopedUser([], true))
-            ->active()
+        $user = ScopedUser::active()
             ->where('name', '=', 'Bob')
             ->first();
 
@@ -87,16 +88,20 @@ final class ScopeTest extends TestCase
     }
 }
 
+/**
+ * @method static QueryBuilder active()
+ * @method static QueryBuilder popular()
+ */
 final class ScopedUser extends Model
 {
     protected static ?string $table = 'scoped_users';
 
-    public function scopeActive($query): void
+    public function scopeActive(BaseBuilder $query): void
     {
         $query->where('active', '=', 1);
     }
 
-    public function scopePopular($query): void
+    public function scopePopular(BaseBuilder $query): void
     {
         $query->where('votes', '>', 10);
     }
