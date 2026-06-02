@@ -510,15 +510,15 @@ class User extends Model
 {
     public function posts(): HasMany
     {
-        return $this->hasMany(Post::class, 'user_id');
+        return $this->hasMany('user_id');
     }
     public function profile(): HasOne
     {
-        return $this->hasOne(Profile::class, 'user_id');
+        return $this->hasOne('user_id');
     }
     public function role(): BelongsTo
     {
-        return $this->belongsTo(Role::class, 'role_id');
+        return $this->belongsTo('role_id');
     }
     public function roles(): BelongsToMany
     {
@@ -527,11 +527,15 @@ class User extends Model
 }
 ```
 
+The shorthand relation form infers the related model from the method name, so `posts()` maps to `Post::class`, `profile()` maps to `Profile::class`, and `user()` maps to `User::class` when the model lives in the same namespace.
+
+`BelongsToMany` stays explicit because it needs pivot table and pivot key names in addition to the related model.
+
 Supported relations:
 
-- `HasOne` — `$this->hasOne(Related::class, 'foreign_key', 'local_key')`
-- `HasMany` — `$this->hasMany(Related::class, 'foreign_key', 'local_key')`
-- `BelongsTo` — `$this->belongsTo(Related::class, 'foreign_key', 'owner_key')`
+- `HasOne` — `$this->hasOne('foreign_key', 'local_key')` or `$this->hasOne(Related::class, 'foreign_key', 'local_key')`
+- `HasMany` — `$this->hasMany('foreign_key', 'local_key')` or `$this->hasMany(Related::class, 'foreign_key', 'local_key')`
+- `BelongsTo` — `$this->belongsTo('foreign_key', 'owner_key')` or `$this->belongsTo(Related::class, 'foreign_key', 'owner_key')`
 - `BelongsToMany` — `$this->belongsToMany(Related::class, 'pivot_table', 'foreign_pivot_key', 'related_pivot_key', 'parent_key', 'related_key', ['pivot_columns'])`
 - `MorphTo` — `$this->morphTo('morph_type', 'morph_id')`
 - `MorphMany` — `$this->morphMany(Related::class, 'morph_type', 'morph_id', 'local_key')`

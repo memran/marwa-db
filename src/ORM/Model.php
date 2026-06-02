@@ -350,6 +350,41 @@ abstract class Model
         return static::pluralize($snake);       // "user_profiles"
     }
 
+    /**
+     * Infer a related model class from the relation method name.
+     *
+     * Examples:
+     * - posts() -> App\Models\Post
+     * - user() -> App\Models\User
+     */
+    protected static function inferRelatedModelClassFromRelation(string $relationName): string
+    {
+        $namespace = static::classNamespace();
+        $baseName = static::toStudlyCase(static::singularize($relationName));
+        $fqcn = $namespace !== '' ? $namespace . '\\' . $baseName : $baseName;
+
+        if (!class_exists($fqcn)) {
+            throw new \RuntimeException(sprintf(
+                'Unable to infer related model class "%s" from relation "%s" on %s.',
+                $fqcn,
+                $relationName,
+                static::class
+            ));
+        }
+
+        /** @var class-string<Model> $fqcn */
+        return $fqcn;
+    }
+
+    /** Get the namespace for the current model class. */
+    protected static function classNamespace(): string
+    {
+        $fqcn = static::class;
+        $pos = strrpos($fqcn, '\\');
+
+        return $pos === false ? '' : substr($fqcn, 0, $pos);
+    }
+
     /** "App\Models\UserProfile" -> "UserProfile" */
     protected static function classBaseName(): string
     {
@@ -363,6 +398,15 @@ abstract class Model
     {
         $snake = preg_replace('/(?<!^)[A-Z]/', '_$0', $name);
         return strtolower($snake ?? $name);
+    }
+
+    /** "post_comments" -> "PostComments" */
+    protected static function toStudlyCase(string $name): string
+    {
+        $parts = preg_split('/[_\-\s]+/', $name) ?: [$name];
+        $parts = array_map(static fn (string $part): string => ucfirst(strtolower($part)), $parts);
+
+        return implode('', $parts);
     }
 
     /** Very small, dependency‑free pluralizer for table names */
@@ -403,6 +447,39 @@ abstract class Model
         return $word . 's';
     }
 
+    /** Very small, dependency-free singularizer for relation names. */
+    protected static function singularize(string $word): string
+    {
+        static $irregular = [
+            'people' => 'person',
+            'men' => 'man',
+            'women' => 'woman',
+            'children' => 'child',
+            'teeth' => 'tooth',
+            'feet' => 'foot',
+            'mice' => 'mouse',
+            'geese' => 'goose',
+        ];
+
+        if (isset($irregular[$word])) {
+            return $irregular[$word];
+        }
+
+        if (preg_match('/[^aeiou]ies$/i', $word)) {
+            return preg_replace('/ies$/i', 'y', $word) ?? $word;
+        }
+
+        if (preg_match('/(s|x|z|ch|sh)es$/i', $word)) {
+            return preg_replace('/es$/i', '', $word) ?? $word;
+        }
+
+        if (preg_match('/s$/i', $word) && !preg_match('/ss$/i', $word)) {
+            return preg_replace('/s$/i', '', $word) ?? $word;
+        }
+
+        return $word;
+    }
+
     public function __get(string $name): mixed
     {
         if ($this->hasAttribute($name)) {
@@ -441,19 +518,44 @@ abstract class Model
 
     /** ---------- Shorthand relation constructors ---------- */
 
-    protected function hasMany(string $related, string $foreignKey, string $localKey = 'id'): HasMany
+    protected function hasMany(string $relatedOrForeignKey, ?string $foreignKey = null, string $localKey = 'id'): HasMany
     {
+        [$related, $foreignKey] = $this->resolveRelatedRelationArguments($relatedOrForeignKey, $foreignKey);
         return new HasMany(static::$cm, static::$connection, static::class, $related, $foreignKey, $localKey);
     }
 
-    protected function belongsTo(string $related, string $foreignKey, string $ownerKey = 'id'): BelongsTo
+    protected function belongsTo(string $relatedOrForeignKey, ?string $foreignKey = null, string $ownerKey = 'id'): BelongsTo
     {
+        [$related, $foreignKey] = $this->resolveRelatedRelationArguments($relatedOrForeignKey, $foreignKey);
         return new BelongsTo(static::$cm, static::$connection, static::class, $related, $foreignKey, $ownerKey);
     }
 
-    protected function hasOne(string $related, string $foreignKey, string $localKey = 'id'): HasOne
+    protected function hasOne(string $relatedOrForeignKey, ?string $foreignKey = null, string $localKey = 'id'): HasOne
     {
+        [$related, $foreignKey] = $this->resolveRelatedRelationArguments($relatedOrForeignKey, $foreignKey);
         return new HasOne(static::$cm, static::$connection, static::class, $related, $foreignKey, $localKey);
+    }
+
+    /**
+     * Resolve relation arguments for explicit and shorthand relation declarations.
+     *
+     * @return array{0: class-string<Model>, 1: string}
+     */
+    protected function resolveRelatedRelationArguments(string $relatedOrForeignKey, ?string $foreignKey): array
+    {
+        if ($foreignKey !== null) {
+            /** @var class-string<Model> $relatedOrForeignKey */
+            return [$relatedOrForeignKey, $foreignKey];
+        }
+
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+        $relationName = $trace[2]['function'] ?? '';
+
+        if (!is_string($relationName) || $relationName === '') {
+            throw new \RuntimeException('Unable to resolve relation name for shorthand relationship declaration.');
+        }
+
+        return [static::inferRelatedModelClassFromRelation($relationName), $relatedOrForeignKey];
     }
 
     protected function belongsToMany(
