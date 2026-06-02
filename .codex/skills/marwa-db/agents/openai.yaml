@@ -1,0 +1,4 @@
+interface:
+  display_name: "Marwa DB"
+  short_description: "Build with the Marwa DB ORM"
+  default_prompt: "Use $marwa-db to work with Marwa DB queries, ORM models, relations, migrations, and seeders."
