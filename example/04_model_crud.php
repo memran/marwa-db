@@ -15,10 +15,17 @@ Model::setConnectionManager($cm, 'sqlite');
 
 // Define a model
 class User extends Model {
-    protected $fillable = ['name', 'email'];
+    protected static array $fillable = ['name', 'email'];
 }
 
-$cm->getPdo()->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)");
+$pdo = $cm->getPdo('sqlite');
+$pdo->exec("CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    created_at TEXT NULL,
+    updated_at TEXT NULL
+)");
 
 // Create
 $user = User::create(['name' => 'Alice', 'email' => 'alice@test.com']);
@@ -28,7 +35,7 @@ $found = User::find($user->id);
 print_r($found->toArray());
 
 // Update
-$found->email = 'alice@new.com';
+$found->setAttribute('email', 'alice@new.com');
 $found->save();
 
 // Delete

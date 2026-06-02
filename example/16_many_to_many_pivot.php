@@ -23,8 +23,8 @@ $cm = new ConnectionManager($config);
 Model::setConnectionManager($cm, 'sqlite');
 
 $pdo = $cm->getPdo('sqlite');
-$pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)');
-$pdo->exec('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)');
+$pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at TEXT NULL, updated_at TEXT NULL)');
+$pdo->exec('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at TEXT NULL, updated_at TEXT NULL)');
 $pdo->exec('CREATE TABLE role_user (user_id INTEGER NOT NULL, role_id INTEGER NOT NULL, granted_at TEXT NULL)');
 
 final class User extends Model

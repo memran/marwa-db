@@ -23,7 +23,7 @@ $cm = new ConnectionManager($config);
 Model::setConnectionManager($cm, 'sqlite');
 
 $pdo = $cm->getPdo('sqlite');
-$pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, active INTEGER NOT NULL, votes INTEGER NOT NULL)');
+$pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, active INTEGER NOT NULL, votes INTEGER NOT NULL, created_at TEXT NULL, updated_at TEXT NULL)');
 
 for ($i = 1; $i <= 6; $i++) {
     $pdo->prepare('INSERT INTO users (name, active, votes) VALUES (?, ?, ?)')->execute([

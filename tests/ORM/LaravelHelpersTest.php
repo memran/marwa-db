@@ -8,6 +8,7 @@ use Marwa\DB\Config\Config;
 use Marwa\DB\Connection\ConnectionManager;
 use Marwa\DB\ORM\Model;
 use Marwa\DB\ORM\QueryBuilder;
+use Marwa\DB\Support\DebugPanel;
 use PHPUnit\Framework\TestCase;
 
 final class LaravelHelpersTest extends TestCase
@@ -88,6 +89,25 @@ final class LaravelHelpersTest extends TestCase
         self::assertSame(1, $users[0]?->getAttribute('total_posts'));
         self::assertSame(2, $users[1]?->getAttribute('posts_count'));
         self::assertSame(2, $users[1]?->getAttribute('total_posts'));
+    }
+
+    public function testWithCountLoadsCountsInOneAdditionalQuery(): void
+    {
+        $manager = $this->makeManager();
+        $this->seedData($manager);
+
+        $panel = new DebugPanel();
+        $manager->setDebugPanel($panel);
+
+        HelperUser::setConnectionManager($manager);
+        HelperPost::setConnectionManager($manager);
+
+        HelperUser::query()
+            ->withCount('posts', 'posts as total_posts')
+            ->orderBy('id')
+            ->get();
+
+        self::assertCount(2, $panel->all());
     }
 
     private function makeManager(): ConnectionManager

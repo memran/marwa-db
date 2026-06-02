@@ -460,14 +460,24 @@ class Builder
         return $this;
     }
 
-    public function limit(int $n): self
+    public function limit(int|null $n): self
     {
+        if ($n === null) {
+            $this->limit = null;
+            return $this;
+        }
+
         $this->limit = max(0, $n);
         return $this;
     }
 
-    public function offset(int $n): self
+    public function offset(int|null $n): self
     {
+        if ($n === null) {
+            $this->offset = null;
+            return $this;
+        }
+
         $this->offset = max(0, $n);
         return $this;
     }

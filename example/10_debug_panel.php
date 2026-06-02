@@ -3,7 +3,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Marwa\DB\Config\Config;
 use Marwa\DB\Connection\ConnectionManager;
-use Marwa\DB\Debug\DebugPanel;
+use Marwa\DB\Support\DebugPanel;
 
 $config = new Config([
     'default' => 'sqlite',
@@ -12,7 +12,7 @@ $config = new Config([
 ]);
 
 $cm = new ConnectionManager($config);
-$panel = new DebugPanel(1); // threshold 1ms
+$panel = new DebugPanel();
 $cm->setDebugPanel($panel);
 
 $pdo = $cm->getPdo();

@@ -297,6 +297,24 @@ $total = DB::table('orders')
     ->sum('amount');
 ```
 
+More query builder examples:
+
+```php
+$recentUsers = DB::table('users')
+    ->select('id', 'name', 'email')
+    ->when(true, fn ($query) => $query->where('active', '=', 1))
+    ->orderBy('id', 'desc')
+    ->limit(5)
+    ->get();
+
+$paidOrders = DB::table('orders')
+    ->where('status', '=', 'paid')
+    ->whereBetween('created_at', ['2026-01-01', '2026-12-31'])
+    ->groupBy('user_id')
+    ->having('COUNT(*)', '>', 1)
+    ->get();
+```
+
 ## ORM
 
 Extend `Marwa\DB\ORM\Model` to define your models.
@@ -323,6 +341,29 @@ Switch connection per-query:
 
 ```php
 User::on('mysql_secondary')->where('active', 1)->get();
+```
+
+Practical ORM examples:
+
+```php
+// Fetch a single record
+$user = User::find(1);
+
+// Compose scopes with the ORM query builder
+$users = User::active()
+    ->popular()
+    ->with('posts')
+    ->orderBy('name')
+    ->get();
+
+// Count related records
+$users = User::withCount('posts')->get();
+
+// Create and persist a model
+$created = User::create([
+    'name' => 'Alice',
+    'email' => 'alice@example.com',
+]);
 ```
 
 ### Model Events

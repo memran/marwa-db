@@ -24,8 +24,8 @@ $cm = new ConnectionManager($config);
 Model::setConnectionManager($cm, 'sqlite');
 
 $pdo = $cm->getPdo('sqlite');
-$pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)');
-$pdo->exec('CREATE TABLE posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, title TEXT NOT NULL)');
+$pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at TEXT NULL, updated_at TEXT NULL)');
+$pdo->exec('CREATE TABLE posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, title TEXT NOT NULL, created_at TEXT NULL, updated_at TEXT NULL)');
 
 final class User extends Model
 {

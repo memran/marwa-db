@@ -13,12 +13,18 @@ $config = new Config([
 $cm = new ConnectionManager($config);
 Model::setConnectionManager($cm, 'sqlite');
 
-$pdo = $cm->getPdo();
-$pdo->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, role TEXT)");
+$pdo = $cm->getPdo('sqlite');
+$pdo->exec("CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    role TEXT NULL,
+    created_at TEXT NULL,
+    updated_at TEXT NULL
+)");
 
 class User extends Model {
-    protected $fillable = ['name'];
-    protected $guarded = ['role'];
+    protected static array $fillable = ['name'];
+    protected static array $guarded = ['role'];
 }
 
 $user = User::create(['name' => 'David', 'role' => 'admin']); // role ignored

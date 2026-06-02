@@ -39,6 +39,25 @@ abstract class Relation
         return $results === null ? 0 : 1;
     }
 
+    /**
+     * Load relation counts for many parent models in one pass.
+     * Default fallback keeps existing behavior for custom relations.
+     *
+     * @param array<Model> $models
+     */
+    public function eagerCount(array $models, string ...$aliases): void
+    {
+        foreach ($models as $model) {
+            if (!$model instanceof Model) {
+                continue;
+            }
+
+            foreach ($aliases as $alias) {
+                $model->setRelation($alias, $this->count($model));
+            }
+        }
+    }
+
     protected function qb(string $table): BaseBuilder
     {
         $builder = (new BaseBuilder($this->cm, $this->connection))->table($table);

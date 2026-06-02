@@ -14,7 +14,7 @@ $cm = new ConnectionManager($config);
 $schema = new Builder($cm, 'sqlite');
 
 $schema->create('posts', function ($table) {
-    $table->id();
+    $table->increments('id');
     $table->string('title');
     $table->text('body');
     $table->timestamps();

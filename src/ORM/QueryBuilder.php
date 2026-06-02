@@ -266,12 +266,12 @@ final class QueryBuilder
         $this->qb->orderBy($col, $dir);
         return $this;
     }
-    public function limit(int $n): self
+    public function limit(int|null $n): self
     {
         $this->qb->limit($n);
         return $this;
     }
-    public function offset(int $n): self
+    public function offset(int|null $n): self
     {
         $this->qb->offset($n);
         return $this;
@@ -575,10 +575,12 @@ final class QueryBuilder
         /** @var class-string<Model> $cls */
         $cls = $this->modelClass;
 
+        $groupedCounts = [];
         foreach ($this->countRelations as $spec) {
-            $relationName = $spec['relation'];
-            $alias = $spec['alias'];
+            $groupedCounts[$spec['relation']][] = $spec['alias'];
+        }
 
+        foreach ($groupedCounts as $relationName => $aliases) {
             if (!method_exists($cls, $relationName)) {
                 continue;
             }
@@ -591,9 +593,7 @@ final class QueryBuilder
                 continue;
             }
 
-            foreach ($models as $model) {
-                $model->setRelation($alias, $descriptor->count($model));
-            }
+            $descriptor->eagerCount($models, ...array_values(array_unique($aliases)));
         }
     }
 

@@ -73,6 +73,69 @@ final class HasOne extends Relation
         return $this->first($parent);
     }
 
+    /** @param array<Model> $models */
+    public function eagerCount(array $models, string ...$aliases): void
+    {
+        if (!$models) {
+            return;
+        }
+
+        $parentKeys = [];
+        foreach ($models as $model) {
+            if (!$model instanceof Model) {
+                continue;
+            }
+
+            $key = $model->getAttribute($this->localKey);
+            if ($key !== null) {
+                $parentKeys[] = $key;
+            }
+        }
+
+        $parentKeys = array_values(array_unique($parentKeys));
+        if (!$parentKeys) {
+            foreach ($models as $model) {
+                if ($model instanceof Model) {
+                    foreach ($aliases as $alias) {
+                        $model->setRelation($alias, 0);
+                    }
+                }
+            }
+
+            return;
+        }
+
+        /** @var class-string<Model> $rel */
+        $rel = $this->related;
+        $rows = $this->qb($rel::table())
+            ->select($this->foreignKey)
+            ->whereIn($this->foreignKey, $parentKeys)
+            ->get();
+
+        $exists = [];
+        foreach ($rows as $row) {
+            $arr = is_array($row) ? $row : (array) $row;
+            $fk = $arr[$this->foreignKey] ?? null;
+            if ($fk === null) {
+                continue;
+            }
+
+            $exists[(string) $fk] = 1;
+        }
+
+        foreach ($models as $model) {
+            if (!$model instanceof Model) {
+                continue;
+            }
+
+            $key = $model->getAttribute($this->localKey);
+            $count = $key === null ? 0 : ($exists[(string) $key] ?? 0);
+            foreach ($aliases as $alias) {
+                $model->setRelation($alias, $count);
+            }
+        }
+    }
+
     /** @return list<Model> */
     public function get(Model $parent): array
     {

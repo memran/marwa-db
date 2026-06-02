@@ -23,7 +23,7 @@ $cm = new ConnectionManager($config);
 Model::setConnectionManager($cm, 'sqlite');
 
 $pdo = $cm->getPdo('sqlite');
-$pdo->exec('CREATE TABLE posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, deleted_at TEXT NULL)');
+$pdo->exec('CREATE TABLE posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, created_at TEXT NULL, updated_at TEXT NULL, deleted_at TEXT NULL)');
 
 final class Post extends Model
 {

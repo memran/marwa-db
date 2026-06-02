@@ -17,7 +17,7 @@ declare(strict_types=1);
  */
 
 return [
-    'default' => [
+    'mysql' => [
         'driver'      => 'mysql',
         'host'        => 'localhost',
         'port'        => 3306,
@@ -25,6 +25,18 @@ return [
         'username'    => 'root',
         'password'    => '',
         'charset'     => 'utf8mb4',
+        'options'     => [
+            // Example PDO options (optional; sensible defaults already applied)
+            // \PDO::ATTR_PERSISTENT => true,
+        ],
+        'retry'       => 3,
+        'retry_delay' => 300, // ms
+        'debug'       => true,
+    ],
+
+    'default' => [
+        'driver'      => 'sqlite',
+        'database'    => __DIR__ . '/../storage/database.sqlite',
         'options'     => [
             // Example PDO options (optional; sensible defaults already applied)
             // \PDO::ATTR_PERSISTENT => true,

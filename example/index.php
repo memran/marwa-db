@@ -15,10 +15,34 @@ $panel = new DebugPanel();
 $manager->setDebugPanel($panel);
 
 DB::setManager($manager);
-$rows = DB::table('users')
-    ->orderBy('id', 'desc')
-    ->limit(5)
-    ->get();
+$pdo = $manager->getPdo();
+
+if (($db['default']['driver'] ?? null) === 'sqlite') {
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NULL
+        )'
+    );
+
+    $count = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    if ($count === 0) {
+        $pdo->exec("INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com')");
+        $pdo->exec("INSERT INTO users (name, email) VALUES ('Bob', 'bob@example.com')");
+    }
+}
+
+try {
+    $rows = DB::table('users')
+        ->orderBy('id', 'desc')
+        ->limit(5)
+        ->get();
+    $queryError = null;
+} catch (\Throwable $e) {
+    $rows = [];
+    $queryError = $e->getMessage();
+}
 
 $examples = [
     'Getting started' => [
@@ -33,6 +57,7 @@ $examples = [
         '06_soft_deletes.php' => 'Soft deletes',
         '07_mass_assignment.php' => 'Mass assignment',
         '10_debug_panel.php' => 'Debug panel',
+        '19_marwa_debugbar.php' => 'Marwa DebugBar package',
     ],
     'ORM examples' => [
         '11_relations_eager_loading.php' => 'Relations and eager loading',
@@ -46,12 +71,22 @@ $examples = [
         '12_pagination_chunks.php' => 'Pagination and chunks',
         '17_json_queries.php' => 'JSON query conditions',
         '09_transactions.php' => 'Transactions',
+        '20_benchmark_query_vs_orm.php' => 'Query vs ORM benchmark',
+        '21_benchmark_chunk_vs_get.php' => 'Chunk vs get benchmark',
+        '22_benchmark_with_debugbar.php' => 'Benchmark with DebugBar',
+        '23_benchmark_heavy_operations.php' => 'Heavy operations benchmark',
     ],
 ];
 
 echo '<pre>';
 print_r($rows);
 echo '</pre>';
+if ($queryError !== null) {
+    echo '<p><strong>Demo note:</strong> ' . htmlspecialchars($queryError, ENT_QUOTES, 'UTF-8') . '</p>';
+    echo '<p>Create a `users` table, or switch the default connection to SQLite for the built-in demo data.</p>';
+} elseif (($db['default']['driver'] ?? null) === 'mysql' && $rows === []) {
+    echo '<p><strong>Demo note:</strong> no `users` rows were found in the configured MySQL database.</p>';
+}
 if ($db['default']['debug']) {
     echo $panel->render();
 }

@@ -14,16 +14,22 @@ $config = new Config([
 $cm = new ConnectionManager($config);
 Model::setConnectionManager($cm, 'sqlite');
 
-$pdo = $cm->getPdo();
-$pdo->exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, deleted_at TEXT)");
+$pdo = $cm->getPdo('sqlite');
+$pdo->exec("CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    created_at TEXT NULL,
+    updated_at TEXT NULL,
+    deleted_at TEXT NULL
+)");
 
 class User extends Model {
     use SoftDeletes;
-    protected $fillable = ['name'];
+    protected static array $fillable = ['name'];
 }
 
 $user = User::create(['name' => 'Charlie']);
 $user->delete();
 
-print_r(User::all()->toArray()); // Empty because soft deleted
-print_r(User::withTrashed()->get()->toArray()); // Shows deleted
+print_r(User::all()); // Empty because soft deleted
+print_r(User::withTrashed()->get()); // Shows deleted

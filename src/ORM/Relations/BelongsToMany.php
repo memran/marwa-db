@@ -178,6 +178,71 @@ final class BelongsToMany extends Relation
         return $this->get($parent);
     }
 
+    /** @param array<Model> $models */
+    public function eagerCount(array $models, string ...$aliases): void
+    {
+        if (!$models) {
+            return;
+        }
+
+        $parentIds = [];
+        foreach ($models as $model) {
+            if (!$model instanceof Model) {
+                continue;
+            }
+
+            $id = $model->getAttribute($this->parentKey);
+            if ($id !== null) {
+                $parentIds[] = $id;
+            }
+        }
+
+        $parentIds = array_values(array_unique($parentIds));
+        if (!$parentIds) {
+            foreach ($models as $model) {
+                if ($model instanceof Model) {
+                    foreach ($aliases as $alias) {
+                        $model->setRelation($alias, 0);
+                    }
+                }
+            }
+
+            return;
+        }
+
+        /** @var class-string<Model> $relCls */
+        $relCls = $this->related;
+        $rows = $this->qb($relCls::table())
+            ->select($this->pivotTable . '.' . $this->foreignPivotKey)
+            ->join($this->pivotTable, $this->pivotTable . '.' . $this->relatedPivotKey, '=', $relCls::table() . '.' . $this->relatedKey)
+            ->whereIn($this->pivotTable . '.' . $this->foreignPivotKey, $parentIds)
+            ->get();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $arr = is_array($row) ? $row : (array) $row;
+            $pid = $arr[$this->foreignPivotKey] ?? null;
+            if ($pid === null) {
+                continue;
+            }
+
+            $key = (string) $pid;
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+
+        foreach ($models as $model) {
+            if (!$model instanceof Model) {
+                continue;
+            }
+
+            $id = $model->getAttribute($this->parentKey);
+            $count = $id === null ? 0 : ($counts[(string) $id] ?? 0);
+            foreach ($aliases as $alias) {
+                $model->setRelation($alias, $count);
+            }
+        }
+    }
+
     /** ---------- Optional write helpers on the pivot ---------- */
 
     /**
