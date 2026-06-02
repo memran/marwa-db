@@ -19,7 +19,7 @@ final class MakeSeederCommand extends Command
 {
 
     public function __construct(
-        private string $seedPath = '',                  // e.g. project_root()/database/seeders
+        private string $seedPath = '',
         private string $seedNamespace = 'Database\\Seeders'
     ) {
         parent::__construct();
@@ -74,17 +74,12 @@ declare(strict_types=1);
 namespace {$namespace};
 
 use Marwa\DB\Seeder\Seeder;
-use Faker\Factory as FakerFactory;
 
 final class {$class} implements Seeder
 {
     public function run(): void
     {
-        // TODO: add your seed logic here, e.g.:
-        // \\App\\Models\\User::create([
-        //     'name' => \$faker->name(),
-        //     'email' => \$faker->unique()->safeEmail(),
-        // ]);
+        // Add seed logic here.
     }
 }
 

@@ -247,8 +247,11 @@ Selection and table:
 
 Filtering and ordering:
 
+- `when(mixed $value, callable $callback, ?callable $default = null): self`
+- `unless(mixed $value, callable $callback, ?callable $default = null): self`
 - `where(string $column, string $operator, mixed $value, string $boolean = 'and'): self`
 - `orWhere(string $column, string $operator, mixed $value): self`
+- `whereKey(int|string|array $id): self`
 - `whereIn(string $column, array $values, bool $not = false, string $boolean = 'and'): self`
 - `whereNotIn(string $column, array $values, string $boolean = 'and'): self`
 - `whereNull(string $column, string $boolean = 'and'): self`
@@ -272,6 +275,7 @@ Reading:
 - `sum(string $column): int|float|null`
 - `avg(string $column): ?float`
 - `paginate(int $perPage = 15, int $page = 1, int $fetchMode = PDO::FETCH_ASSOC): array`
+- `withCount(string ...$relations): self`
 
 Writing:
 
@@ -357,11 +361,14 @@ Setup:
 Query entry points:
 
 - `query(): Marwa\DB\ORM\QueryBuilder`
+- `newQuery(): Marwa\DB\ORM\QueryBuilder`
 - `on(string $connection): Marwa\DB\ORM\QueryBuilder`
 - `where(string $col, mixed $op, mixed $val = null): Marwa\DB\ORM\QueryBuilder`
+- `whereKey(int|string|array $id): Marwa\DB\ORM\QueryBuilder`
 - `whereIn(string $col, array $values): Marwa\DB\ORM\QueryBuilder`
 - `whereNull(string $col): Marwa\DB\ORM\QueryBuilder`
 - `whereNotNull(string $col): Marwa\DB\ORM\QueryBuilder`
+- `withCount(string ...$relations): Marwa\DB\ORM\QueryBuilder`
 - `all(): array`
 - `find(int|string $id): ?static`
 - `findOrFail(int|string $id): static`
@@ -376,7 +383,7 @@ Query entry points:
 - `chunk(int $size, callable $callback): void`
 - `chunkById(int $size, callable $callback, string $idCol = 'id'): void`
 
-Static calls forward to the query builder. Unknown static methods like `User::where(...)` or `User::orderBy(...)` are equivalent to `User::query()->where(...)`:
+Static calls and query shortcuts resolve to the query builder. For example, `User::where(...)` and `User::orderBy(...)` are equivalent to `User::query()->where(...)`:
 
 ```php
 $users = User::where('active', 1)->orderBy('name')->get();
@@ -472,7 +479,7 @@ Scopes:
 
 - `addGlobalScope(Closure $scope, ?string $identifier = null): void`
 - `withoutGlobalScope(string $identifier): static`
-- Local scopes: methods named `scopeXxx()` are callable as `->xxx()` or `Model::xxx()`, returning the query builder for chaining
+- Local scopes: methods named `scopeXxx()` are callable as `->xxx()`, `Model::xxx()`, or `Model::query()->xxx()`, and they return the query builder for chaining
 
 ```php
 class User extends Model
@@ -655,7 +662,7 @@ Connection switching:
 User::on('replica')->where('active', 1)->get();
 ```
 
-Scope forwarding — unknown methods are resolved as local scopes on the model:
+Scope forwarding: unknown methods are resolved as local scopes on the model, so chaining continues on the query builder:
 
 ```php
 User::active()->popular()->get();
@@ -983,3 +990,9 @@ composer run ci
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Community
+
+- Read the [Code of Conduct](CODE_OF_CONDUCT.md)
+- See [Contributing](CONTRIBUTING.md) for workflow and PR guidance
+- Report security issues through [SECURITY.md](SECURITY.md)

@@ -22,8 +22,9 @@ final class SchemaTest extends TestCase
 
     public function testInitUsesRequestedConnectionName(): void
     {
-        $defaultPath = tempnam(sys_get_temp_dir(), 'marwa-default-');
-        $secondaryPath = tempnam(sys_get_temp_dir(), 'marwa-secondary-');
+        $tempDir = $this->tempDir('schema');
+        $defaultPath = tempnam($tempDir, 'marwa-default-');
+        $secondaryPath = tempnam($tempDir, 'marwa-secondary-');
 
         if ($defaultPath === false || $secondaryPath === false) {
             self::fail('Could not create temporary SQLite files.');
@@ -58,6 +59,21 @@ final class SchemaTest extends TestCase
         } finally {
             @unlink($defaultPath);
             @unlink($secondaryPath);
+            @rmdir($tempDir);
         }
+    }
+
+    private function tempDir(string $prefix): string
+    {
+        $root = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.test-tmp';
+        $dir = $root . DIRECTORY_SEPARATOR . $prefix . '-' . bin2hex(random_bytes(4));
+
+        if (!is_dir($root)) {
+            mkdir($root, 0775, true);
+        }
+
+        mkdir($dir, 0775, true);
+
+        return $dir;
     }
 }

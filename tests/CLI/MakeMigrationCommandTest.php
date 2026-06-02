@@ -12,7 +12,7 @@ final class MakeMigrationCommandTest extends TestCase
 {
     public function testCommandCreatesTimestampedMigrationFile(): void
     {
-        $dir = sys_get_temp_dir() . '/marwa-db-tests-' . bin2hex(random_bytes(4));
+        $dir = $this->tempDir('migrations');
         $command = new MakeMigrationCommand($dir);
         $tester = new CommandTester($command);
 
@@ -33,11 +33,30 @@ final class MakeMigrationCommandTest extends TestCase
             self::assertStringContainsString('return new class extends AbstractMigration', $contents);
             self::assertStringContainsString("Schema::drop('example');", $contents);
         } finally {
-            $files = glob($dir . '/*.php') ?: [];
-            foreach ($files as $file) {
-                @unlink($file);
-            }
-            @rmdir($dir);
+            $this->removeTempDir($dir);
         }
+    }
+
+    private function tempDir(string $prefix): string
+    {
+        $root = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.test-tmp';
+        $dir = $root . DIRECTORY_SEPARATOR . $prefix . '-' . bin2hex(random_bytes(4));
+
+        if (!is_dir($root)) {
+            mkdir($root, 0775, true);
+        }
+
+        mkdir($dir, 0775, true);
+
+        return $dir;
+    }
+
+    private function removeTempDir(string $dir): void
+    {
+        foreach (glob($dir . DIRECTORY_SEPARATOR . '*.php') ?: [] as $file) {
+            @unlink($file);
+        }
+
+        @rmdir($dir);
     }
 }

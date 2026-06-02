@@ -13,7 +13,7 @@ final class MakeSeederCommandTest extends TestCase
 {
     public function testCommandCreatesSeederFileWithExpectedNamespace(): void
     {
-        $dir = sys_get_temp_dir() . '/marwa-db-seeders-' . bin2hex(random_bytes(4));
+        $dir = $this->tempDir('seeders');
         $command = new MakeSeederCommand($dir, 'Database\\Seeders');
         $tester = new CommandTester($command);
 
@@ -32,17 +32,13 @@ final class MakeSeederCommandTest extends TestCase
             self::assertStringContainsString('namespace Database\\Seeders;', $contents);
             self::assertStringContainsString('final class UsersTableSeeder implements Seeder', $contents);
         } finally {
-            $files = glob($dir . '/*.php') ?: [];
-            foreach ($files as $file) {
-                @unlink($file);
-            }
-            @rmdir($dir);
+            $this->removeTempDir($dir);
         }
     }
 
     public function testCommandRejectsNonStudlyCaseSeederName(): void
     {
-        $dir = sys_get_temp_dir() . '/marwa-db-seeders-' . bin2hex(random_bytes(4));
+        $dir = $this->tempDir('seeders-invalid');
         $command = new MakeSeederCommand($dir, 'Database\\Seeders');
         $tester = new CommandTester($command);
 
@@ -54,11 +50,30 @@ final class MakeSeederCommandTest extends TestCase
             self::assertSame(Command::FAILURE, $exitCode);
             self::assertStringContainsString('Class name must be StudlyCase', $tester->getDisplay());
         } finally {
-            $files = glob($dir . '/*.php') ?: [];
-            foreach ($files as $file) {
-                @unlink($file);
-            }
-            @rmdir($dir);
+            $this->removeTempDir($dir);
         }
+    }
+
+    private function tempDir(string $prefix): string
+    {
+        $root = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.test-tmp';
+        $dir = $root . DIRECTORY_SEPARATOR . $prefix . '-' . bin2hex(random_bytes(4));
+
+        if (!is_dir($root)) {
+            mkdir($root, 0775, true);
+        }
+
+        mkdir($dir, 0775, true);
+
+        return $dir;
+    }
+
+    private function removeTempDir(string $dir): void
+    {
+        foreach (glob($dir . DIRECTORY_SEPARATOR . '*.php') ?: [] as $file) {
+            @unlink($file);
+        }
+
+        @rmdir($dir);
     }
 }

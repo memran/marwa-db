@@ -28,6 +28,17 @@ abstract class Relation
      */
     abstract public function getResults(Model $parent): mixed;
 
+    public function count(Model $parent): int
+    {
+        $results = $this->getResults($parent);
+
+        if (is_array($results)) {
+            return count($results);
+        }
+
+        return $results === null ? 0 : 1;
+    }
+
     protected function qb(string $table): BaseBuilder
     {
         $builder = (new BaseBuilder($this->cm, $this->connection))->table($table);

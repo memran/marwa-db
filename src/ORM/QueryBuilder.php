@@ -25,6 +25,9 @@ final class QueryBuilder
     /** @var array<int,string> */
     private array $eager = [];
 
+    /** @var array<int, array{relation:string, alias:string}> */
+    private array $countRelations = [];
+
     private bool $includeTrashed = false;
     private bool $onlyTrashed = false;
     private bool $softDeleteApplied = false;
@@ -83,6 +86,25 @@ final class QueryBuilder
         $this->qb->orWhere($col, $op, $val);
         return $this;
     }
+
+    public function when(mixed $value, callable $callback, ?callable $default = null): self
+    {
+        $result = null;
+
+        if ($value) {
+            $result = $callback($this, $value);
+        } elseif ($default !== null) {
+            $result = $default($this, $value);
+        }
+
+        return $result instanceof self ? $result : $this;
+    }
+
+    public function unless(mixed $value, callable $callback, ?callable $default = null): self
+    {
+        return $this->when(!$value, $callback, $default);
+    }
+
     public function whereColumn(string $first, mixed $operator, ?string $second = null): self
     {
         if (func_num_args() === 2) {
@@ -131,6 +153,22 @@ final class QueryBuilder
         $this->qb->whereNotNull($col);
         return $this;
     }
+
+    /** @param int|string|array<int, int|string> $id */
+    public function whereKey(int|string|array $id): self
+    {
+        /** @var class-string<Model> $modelClass */
+        $modelClass = $this->modelClass;
+        $model = new $modelClass([], true);
+        $key = $model->getKeyName();
+
+        if (is_array($id)) {
+            return $this->whereIn($key, $id);
+        }
+
+        return $this->where($key, '=', $id);
+    }
+
     /** @param array<int, mixed> $values */
     public function whereNotIn(string $col, array $values): self
     {
@@ -241,6 +279,8 @@ final class QueryBuilder
         $this->applySoftDelete();
         $this->qb->chunk($size, function (int $offset, array $rows) use ($callback): void {
             $models = array_map(fn($row) => $this->hydrate($row), $rows);
+            $this->performEagerLoad($models);
+            $this->performCountLoad($models);
             $callback($offset, $models);
         });
     }
@@ -264,6 +304,8 @@ final class QueryBuilder
         $this->applySoftDelete();
         $this->qb->chunkById($size, function (int|string $lastId, array $rows) use ($callback): void {
             $models = array_map(fn($row) => $this->hydrate($row), $rows);
+            $this->performEagerLoad($models);
+            $this->performCountLoad($models);
             $callback((int) $lastId, $models);
         }, $idCol);
     }
@@ -295,6 +337,16 @@ final class QueryBuilder
         foreach ($relations as $r) {
             if (!in_array($r, $this->eager, true)) $this->eager[] = $r;
         }
+        return $this;
+    }
+
+    public function withCount(string ...$relations): self
+    {
+        foreach ($relations as $relation) {
+            [$name, $alias] = $this->parseCountRelation($relation);
+            $this->countRelations[] = ['relation' => $name, 'alias' => $alias];
+        }
+
         return $this;
     }
 
@@ -361,6 +413,8 @@ final class QueryBuilder
         $rows = $this->qb->limit($perPage)->offset(($page - 1) * $perPage)->get();
 
         $models = array_map(fn($row) => $this->hydrate($row), $rows);
+        $this->performEagerLoad($models);
+        $this->performCountLoad($models);
 
         return (new \Marwa\DB\Query\Pagination())->make($models, $total, $perPage, $page);
     }
@@ -374,6 +428,7 @@ final class QueryBuilder
         $rows = $this->qb->get();
         $models = array_map(fn($row) => $this->hydrate($row), $rows);
         $this->performEagerLoad($models);
+        $this->performCountLoad($models);
         return $models;
     }
 
@@ -384,6 +439,7 @@ final class QueryBuilder
         if (!$row) return null;
         $model = $this->hydrate($row);
         $this->performEagerLoad([$model]);
+        $this->performCountLoad([$model]);
         return $model;
     }
 
@@ -398,6 +454,7 @@ final class QueryBuilder
         }
         $model = $this->hydrate($row);
         $this->performEagerLoad([$model]);
+        $this->performCountLoad([$model]);
         return $model;
     }
 
@@ -453,8 +510,9 @@ final class QueryBuilder
         $scope = 'scope' . ucfirst($method);
         if (method_exists($this->modelClass, $scope)) {
             $tmp = new $this->modelClass([], true);
-            $result = $tmp->{$scope}($this->qb, ...$parameters);
-            return $result instanceof BaseBuilder ? $this : $result;
+            $tmp->{$scope}($this->qb, ...$parameters);
+
+            return $this;
         }
         throw new \BadMethodCallException("Call to undefined method " . static::class . "::{$method}()");
     }
@@ -502,5 +560,49 @@ final class QueryBuilder
                 $m->setRelation($name, $m->{$name}());
             }
         }
+    }
+
+    /** @param array<int, Model> $models */
+    private function performCountLoad(array $models): void
+    {
+        if (!$models || !$this->countRelations) {
+            return;
+        }
+
+        /** @var class-string<Model> $cls */
+        $cls = $this->modelClass;
+
+        foreach ($this->countRelations as $spec) {
+            $relationName = $spec['relation'];
+            $alias = $spec['alias'];
+
+            if (!method_exists($cls, $relationName)) {
+                continue;
+            }
+
+            /** @var Model $tmp */
+            $tmp = new $cls([], true);
+            $descriptor = $tmp->{$relationName}();
+
+            if (!$descriptor instanceof Relation) {
+                continue;
+            }
+
+            foreach ($models as $model) {
+                $model->setRelation($alias, $descriptor->count($model));
+            }
+        }
+    }
+
+    /**
+     * @return array{0:string,1:string}
+     */
+    private function parseCountRelation(string $relation): array
+    {
+        $parts = preg_split('/\\s+as\\s+/i', trim($relation), 2);
+        $name = trim($parts[0] ?? $relation);
+        $alias = trim($parts[1] ?? ($name . '_count'));
+
+        return [$name, $alias];
     }
 }

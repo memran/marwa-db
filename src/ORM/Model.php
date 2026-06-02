@@ -111,12 +111,28 @@ abstract class Model
         return new \Marwa\DB\ORM\QueryBuilder(static::$cm, $cls, static::$connection);
     }
 
+    public static function newQuery(): \Marwa\DB\ORM\QueryBuilder
+    {
+        return static::query();
+    }
+
     /** Begin a query with eager-loaded relations.
      *  Usage: User::with('posts', 'profile')->get()
      */
     public static function with(string ...$relations): QueryBuilder
     {
         return static::query()->with(...$relations);
+    }
+
+    /** @param int|string|array<int, int|string> $id */
+    public static function whereKey(int|string|array $id): QueryBuilder
+    {
+        return static::query()->whereKey($id);
+    }
+
+    public static function withCount(string ...$relations): QueryBuilder
+    {
+        return static::query()->withCount(...$relations);
     }
 
     /**

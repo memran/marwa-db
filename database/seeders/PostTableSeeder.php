@@ -10,10 +10,6 @@ final class PostTableSeeder implements Seeder
 {
     public function run(): void
     {
-        // TODO: add your seed logic here, e.g.:
-        // \App\Models\User::create([
-        //     'name' => $faker->name(),
-        //     'email' => $faker->unique()->safeEmail(),
-        // ]);
+        // Add seed logic here.
     }
 }

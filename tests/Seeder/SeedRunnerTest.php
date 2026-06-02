@@ -14,8 +14,7 @@ final class SeedRunnerTest extends TestCase
 {
     public function testDiscoverSeedersFindsConcreteClassesInConfiguredNamespace(): void
     {
-        $dir = sys_get_temp_dir() . '/marwa-db-seed-runner-' . bin2hex(random_bytes(4));
-        mkdir($dir, 0775, true);
+        $dir = $this->tempDir('seed-runner');
 
         $classPrefix = 'MarwaDBTests' . bin2hex(random_bytes(3));
         $namespace = $classPrefix . '\\Seeders';
@@ -42,16 +41,13 @@ final class SeedRunnerTest extends TestCase
                 $namespace . '\\BetaSeeder',
             ], $seeders);
         } finally {
-            @unlink($alpha);
-            @unlink($beta);
-            @rmdir($dir);
+            $this->removeTempDir($dir);
         }
     }
 
     public function testDefaultRunnerDiscoversSeedersRegardlessOfNamespace(): void
     {
-        $dir = sys_get_temp_dir() . '/marwa-db-seed-runner-' . bin2hex(random_bytes(4));
-        mkdir($dir, 0775, true);
+        $dir = $this->tempDir('seed-runner-default');
         $file = $dir . '/UsersTableSeeder.php';
 
         file_put_contents($file, $this->seederStub('Database\\Seeders', 'UsersTableSeeder'));
@@ -64,15 +60,13 @@ final class SeedRunnerTest extends TestCase
         try {
             self::assertSame(['Database\\Seeders\\UsersTableSeeder'], $runner->discoverSeeders());
         } finally {
-            @unlink($file);
-            @rmdir($dir);
+            $this->removeTempDir($dir);
         }
     }
 
     public function testRunAllBootstrapsDbFacadeForFacadeBasedSeeders(): void
     {
-        $dir = sys_get_temp_dir() . '/marwa-db-seed-runner-' . bin2hex(random_bytes(4));
-        mkdir($dir, 0775, true);
+        $dir = $this->tempDir('seed-runner-facade');
         $file = $dir . '/FacadeSeeder.php';
         $manager = new ConnectionManager(new Config([
             'default' => [
@@ -94,8 +88,7 @@ final class SeedRunnerTest extends TestCase
 
             self::assertSame(1, DB::table('seeded_users')->count());
         } finally {
-            @unlink($file);
-            @rmdir($dir);
+            $this->removeTempDir($dir);
         }
     }
 
@@ -141,5 +134,28 @@ final class {$class} implements Seeder
     }
 }
 PHP;
+    }
+
+    private function tempDir(string $prefix): string
+    {
+        $root = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.test-tmp';
+        $dir = $root . DIRECTORY_SEPARATOR . $prefix . '-' . bin2hex(random_bytes(4));
+
+        if (!is_dir($root)) {
+            mkdir($root, 0775, true);
+        }
+
+        mkdir($dir, 0775, true);
+
+        return $dir;
+    }
+
+    private function removeTempDir(string $dir): void
+    {
+        foreach (glob($dir . DIRECTORY_SEPARATOR . '*.php') ?: [] as $file) {
+            @unlink($file);
+        }
+
+        @rmdir($dir);
     }
 }
